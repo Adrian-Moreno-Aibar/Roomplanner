@@ -20,6 +20,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"/>
 
+
+
     <!-- Campo para el correo -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/emailInputLayout"
@@ -97,4 +99,14 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/loginButton"/>
+
+    <TextView
+        android:id="@+id/errorTextView"
+         android:layout_height="200dp"
+         android:layout_width="match_parent"
+        app:layout_constraintTop_toBottomOf="@id/signupButton"
+        app:layout_constraintStart_toStartOf="parent"
+
+        />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
