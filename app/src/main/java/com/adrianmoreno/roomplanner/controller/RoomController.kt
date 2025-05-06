@@ -1,4 +1,4 @@
-// RoomController.kt
+// com/adrianmoreno.roomplanner.controller.RoomController.kt
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData
@@ -11,48 +11,34 @@ import kotlinx.coroutines.launch
 
 class RoomController(
     private val repo: RoomRepository = RoomRepository()
-): ViewModel() {
+) : ViewModel() {
 
     private val _rooms = MutableLiveData<List<Room>>()
     val rooms: LiveData<List<Room>> = _rooms
 
-    /** Inicializa la escucha en tiempo real para un hotel dado */
-    fun observeRooms(hotelId: String) {
+    /** Cargar habitaciones para un hotel específico */
+    fun loadRoomsForHotel(hotelId: String) {
         repo.getRoomsForHotel(hotelId) { list ->
             _rooms.postValue(list)
         }
     }
 
-    fun addRoom(room: Room) {
+    /** Crear una nueva habitación */
+    fun addRoom(room: Room, onComplete: (Boolean) -> Unit) {
         viewModelScope.launch {
-            if (repo.createRoom(room)) {
-                observeRooms(room.hotelRef)
+            val result = repo.createRoom(room)
+            onComplete(result != null)
+            if (result != null) {
+                loadRoomsForHotel(room.hotelRef)
             }
         }
     }
 
-    fun updateRoom(room: Room) {
+    /** Actualizar el estado de una habitación */
+    fun updateStatus(roomId: String, newStatus: String, hotelId: String) {
         viewModelScope.launch {
-            if (repo.updateRoom(room)) {
-                observeRooms(room.hotelRef)
-            }
-        }
-    }
-
-    fun updateRoomStatus(roomId: String, newStatus: String) {
-        viewModelScope.launch {
-            if (repo.updateRoomStatus(roomId, newStatus)) {
-                // Re-observe si ya tienes el hotelId guardado, o
-                // simplemente relies on snapshot listener para refrescar
-            }
-        }
-    }
-
-    fun deleteRoom(room: Room) {
-        viewModelScope.launch {
-            if (repo.deleteRoom(room.id)) {
-                observeRooms(room.hotelRef)
-            }
+            val ok = repo.updateRoomStatus(roomId, newStatus)
+            if (ok) loadRoomsForHotel(hotelId)
         }
     }
 }

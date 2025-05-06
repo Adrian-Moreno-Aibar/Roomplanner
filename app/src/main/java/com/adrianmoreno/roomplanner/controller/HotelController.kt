@@ -1,4 +1,4 @@
-// HotelController.kt
+// com/adrianmoreno/roomplanner/controller/HotelController.kt
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData
@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 class HotelController(
     private val repo: HotelRepository = HotelRepository()
-): ViewModel() {
+) : ViewModel() {
 
     private val _hotels = MutableLiveData<List<Hotel>>()
     val hotels: LiveData<List<Hotel>> = _hotels
@@ -31,18 +31,24 @@ class HotelController(
         }
     }
 
+    /**
+     * Añade un hotel: createHotel devuelve el nuevo ID o null en caso de error.
+     * Tras crearlo, recarga la lista.
+     */
     fun addHotel(hotel: Hotel) {
         viewModelScope.launch {
-            if (repo.createHotel(hotel)) {
-                // recarga tras crear
-                _hotels.value?.let { list -> loadAllHotels() }
+            val newId = repo.createHotel(hotel)
+            if (newId != null) {
+                // si creación OK, recarga todos (o filtra según rol)
+                loadAllHotels()
             }
         }
     }
 
     fun updateHotel(hotel: Hotel) {
         viewModelScope.launch {
-            if (repo.updateHotel(hotel)) {
+            val ok = repo.updateHotel(hotel)
+            if (ok) {
                 loadAllHotels()
             }
         }
@@ -50,7 +56,8 @@ class HotelController(
 
     fun deleteHotel(hotelId: String) {
         viewModelScope.launch {
-            if (repo.deleteHotel(hotelId)) {
+            val ok = repo.deleteHotel(hotelId)
+            if (ok) {
                 loadAllHotels()
             }
         }

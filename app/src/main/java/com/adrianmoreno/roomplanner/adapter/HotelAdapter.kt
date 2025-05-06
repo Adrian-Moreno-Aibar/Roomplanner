@@ -1,5 +1,5 @@
 // com/example/roomplanner/ui/HotelAdapter.kt
-package com.example.roomplanner.ui
+package com.adrianmoreno.roomplanner.adapter
 
 import android.view.LayoutInflater
 import android.view.View

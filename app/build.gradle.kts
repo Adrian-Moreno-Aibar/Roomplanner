@@ -56,6 +56,7 @@ dependencies {
 
     // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.0")
+    implementation(libs.androidx.activity)
 
     // Testing
     testImplementation("junit:junit:4.13.2")

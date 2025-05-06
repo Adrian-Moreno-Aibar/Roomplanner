@@ -13,6 +13,9 @@
         android:theme="@style/Theme.Roomplanner"
         tools:targetApi="31">
         <activity
+            android:name=".RoomsActivity"
+            android:exported="false" />
+        <activity
             android:name=".HomeActivity"
             android:exported="false" />
         <activity
