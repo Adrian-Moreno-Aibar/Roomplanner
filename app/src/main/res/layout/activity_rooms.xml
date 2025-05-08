@@ -10,6 +10,7 @@
         android:id="@+id/roomsTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
         android:text="Habitaciones"
         android:textSize="24sp"
         android:padding="16dp"

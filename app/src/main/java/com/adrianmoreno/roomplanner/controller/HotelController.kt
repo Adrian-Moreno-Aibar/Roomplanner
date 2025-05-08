@@ -1,4 +1,3 @@
-// com/adrianmoreno/roomplanner/controller/HotelController.kt
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData
@@ -11,7 +10,7 @@ import com.adrianmoreno.roomplanner.repositories.HotelRepository
 import kotlinx.coroutines.launch
 
 class HotelController(
-    private val repo: HotelRepository = HotelRepository()
+    val repo: HotelRepository = HotelRepository()
 ) : ViewModel() {
 
     private val _hotels = MutableLiveData<List<Hotel>>()
@@ -24,42 +23,42 @@ class HotelController(
         }
     }
 
-    /** Para Admin */
+    /** Para Admin/Cleaner */
     fun loadHotelsForUser(user: User) {
         repo.getHotelsForUser(user.hotelRefs) { list ->
             _hotels.postValue(list)
         }
     }
 
-    /**
-     * Añade un hotel: createHotel devuelve el nuevo ID o null en caso de error.
-     * Tras crearlo, recarga la lista.
-     */
+    /** Crea un hotel (no recarga) */
     fun addHotel(hotel: Hotel) {
         viewModelScope.launch {
-            val newId = repo.createHotel(hotel)
-            if (newId != null) {
-                // si creación OK, recarga todos (o filtra según rol)
-                loadAllHotels()
-            }
+            repo.createHotel(hotel)
+            // no recarga automática
         }
     }
 
+    /** Actualiza un hotel (no recarga) */
     fun updateHotel(hotel: Hotel) {
         viewModelScope.launch {
-            val ok = repo.updateHotel(hotel)
-            if (ok) {
-                loadAllHotels()
-            }
+            repo.updateHotel(hotel)
+            // no recarga automática
         }
     }
 
+    /** Borra un hotel simple (no recarga) */
     fun deleteHotel(hotelId: String) {
         viewModelScope.launch {
-            val ok = repo.deleteHotel(hotelId)
-            if (ok) {
-                loadAllHotels()
-            }
+            repo.deleteHotel(hotelId)
+            // no recarga automática
+        }
+    }
+
+    /** Borra un hotel y sus habitaciones (no recarga) */
+    fun deleteHotelCascade(hotelId: String) {
+        viewModelScope.launch {
+            repo.deleteHotelCascade(hotelId)
+            // no recarga automática
         }
     }
 }

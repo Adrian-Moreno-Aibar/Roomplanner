@@ -2,7 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/fondo"
+    android:background="@drawable/fondo_login"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".LoginActivity">
 
@@ -14,7 +14,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="80dp"
         android:layout_marginBottom="800dp"
-        android:src="@drawable/logo"
+        android:src="@drawable/logo_prov"
         android:contentDescription="Logo de la aplicación"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -87,7 +87,9 @@
         android:layout_marginTop="30dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/passwordInputLayout"/>
+        app:layout_constraintTop_toBottomOf="@id/passwordInputLayout"
+        android:backgroundTint="@color/Cyan"
+        />
 
     <!-- Botón para crear cuenta -->
     <Button
@@ -98,12 +100,14 @@
         android:layout_marginTop="10dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/loginButton"/>
+        app:layout_constraintTop_toBottomOf="@id/loginButton"
+        android:backgroundTint="@color/Cyan"
+        />
 
     <TextView
         android:id="@+id/errorTextView"
-         android:layout_height="200dp"
-         android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_width="match_parent"
         app:layout_constraintTop_toBottomOf="@id/signupButton"
         app:layout_constraintStart_toStartOf="parent"
 

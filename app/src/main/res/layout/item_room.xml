@@ -34,6 +34,8 @@
             android:id="@+id/toggleStatusButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cambiar"/>
+            android:text="Cambiar"
+            android:backgroundTint="@color/Cyan"
+            />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

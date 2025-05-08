@@ -9,6 +9,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
+
 class HotelRepository {
 
     private val auth = FirebaseAuth.getInstance()
@@ -92,6 +93,34 @@ class HotelRepository {
         true
     } catch (e: Exception) {
         Log.e("HotelRepo", "Error eliminando hotel", e)
+        false
+    }
+
+    suspend fun deleteHotelCascade(hotelId: String): Boolean = try {
+        val batch = db.batch()
+
+        // 1) Borrar todas las rooms de ese hotel
+        val roomsSnap = db.collection("rooms")
+            .whereEqualTo("hotelRef", hotelId)
+            .get()
+            .await()
+        for (doc in roomsSnap.documents) {
+            batch.delete(doc.reference)
+        }
+
+        // 2) Borrar el hotel
+        val hotelRef = db.collection(COLLECTION).document(hotelId)
+        batch.delete(hotelRef)
+
+        // 3) Quitar de hotelRefs del admin
+        val userRef = db.collection("users").document(auth.currentUser!!.uid)
+        batch.update(userRef, "hotelRefs", FieldValue.arrayRemove(hotelId))
+
+        // 4) Ejecutar
+        batch.commit().await()
+        true
+    } catch(e: Exception) {
+        Log.e("HotelRepository", "Error borrando en cascada", e)
         false
     }
 }
