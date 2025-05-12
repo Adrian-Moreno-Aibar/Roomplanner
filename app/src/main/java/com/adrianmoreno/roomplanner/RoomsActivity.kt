@@ -1,6 +1,7 @@
 package com.adrianmoreno.roomplanner
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
@@ -11,94 +12,100 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.adrianmoreno.roomplanner.R
 import com.adrianmoreno.roomplanner.adapter.RoomAdapter
+import com.adrianmoreno.roomplanner.controller.RoomController
 import com.adrianmoreno.roomplanner.models.Room
-import com.adrianmoreno.roomplanner.repositories.RoomRepository
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.launch
 
 class RoomsActivity : AppCompatActivity() {
 
-    private val hotelId by lazy { intent.getStringExtra("HOTEL_ID")!! }
-    private val repo    by lazy { RoomRepository() }
-
-    // 1) Elevamos adapter a propiedad de clase:
+    private val controller = RoomController()
     private lateinit var adapter: RoomAdapter
+    private lateinit var hotelId: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_rooms)
 
+        // Recogemos el ID del hotel desde el Intent
+        hotelId = intent.getStringExtra("HOTEL_ID")!!
+
+        // Referencias UI
         val recycler = findViewById<RecyclerView>(R.id.roomsRecyclerView)
         val fabAdd   = findViewById<ImageView>(R.id.fabAddRoom)
 
+        // Recycler + Adapter
         recycler.layoutManager = LinearLayoutManager(this)
-
-        // 2) Inicializamos el adapter aquí
-        adapter = RoomAdapter { roomId, oldStatus ->
-            // cuando pulsan "Cambiar estado"
-            val nuevo = when (oldStatus) {
-                "DISPONIBLE"   -> "OCUPADA"
-                "OCUPADA" -> "SUCIA"
-                else       -> "DISPONIBLE"
-            }
-            lifecycleScope.launch {
-                val ok = repo.updateRoomStatus(roomId, nuevo)
-                // Toast ya corre en el thread principal por defecto:
-                Toast.makeText(
-                    this@RoomsActivity,
-                    if (ok) "Estado actualizado" else "Error actualizando",
-                    Toast.LENGTH_SHORT
-                ).show()
-                // 3) Ahora sí vemos adapter
-                loadRooms()
-            }
-        }
-
-        recycler.adapter = adapter
-
-        // carga inicial
-        loadRooms()
-
-        // FAB para crear habitación
-        fabAdd.setOnClickListener {
-            showAddRoomDialog { number ->
-                val r = Room(
-                    id       = "",
-                    hotelRef = hotelId,
-                    number   = number,
-                    status   = "DISPONIBLE"
-                )
+        adapter = RoomAdapter(
+            onToggle = { id, next ->
                 lifecycleScope.launch {
-                    val newId = repo.createRoom(r)
-                    Toast.makeText(
-                        this@RoomsActivity,
-                        if (newId != null) "Hab creada" else "Error creando habitación",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    if (newId != null) loadRooms()
+                    controller.toggleStatus(id, next, hotelId)
+                }
+            },
+            onEdit = { room ->
+                showEditDialog(room)
+            },
+            onDelete = { id ->
+                lifecycleScope.launch {
+                    controller.deleteRoom(id, hotelId)
                 }
             }
-        }
-    }
+        )
+        recycler.adapter = adapter
 
-    // Función reutilizable para recargar lista
-    private fun loadRooms() {
-        repo.getRoomsForHotel(hotelId) { list ->
+        // Observamos cambios
+        controller.rooms.observe(this) { list ->
             adapter.submitList(list)
         }
+
+        // Carga inicial
+        controller.loadRooms(hotelId)
+
+        // Añadir habitación
+        fabAdd.setOnClickListener {
+            showAddDialog()
+        }
     }
 
-    private fun showAddRoomDialog(onAdd: (String) -> Unit) {
-        val dialogView = layoutInflater.inflate(R.layout.dialogo_crear_habitacion, null)
-        val etNumber = dialogView.findViewById<EditText>(R.id.editRoomNumber)
+    private fun showAddDialog() {
+        val v = LayoutInflater.from(this)
+            .inflate(R.layout.dialogo_crear_habitacion, null)
+        val etNumber = v.findViewById<EditText>(R.id.editRoomNumber)
 
         AlertDialog.Builder(this)
             .setTitle("Añadir Habitación")
-            .setView(dialogView)
+            .setView(v)
             .setPositiveButton("Añadir") { _, _ ->
                 val num = etNumber.text.toString().trim()
-                if (num.isNotEmpty()) onAdd(num)
-                else Toast.makeText(this, "Introduce un número", Toast.LENGTH_SHORT).show()
+                if (num.isNotEmpty()) {
+                    lifecycleScope.launch {
+                        controller.addRoom(
+                            Room(id="", number=num, status="LIBRE", hotelRef=hotelId),
+                            hotelId
+                        )
+                    }
+                } else {
+                    Toast.makeText(this, "Número requerido", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun showEditDialog(room: Room) {
+        val v = LayoutInflater.from(this)
+            .inflate(R.layout.dialogo_crear_habitacion, null)
+        val etNumber = v.findViewById<EditText>(R.id.editRoomNumber)
+        etNumber.setText(room.number)
+
+        AlertDialog.Builder(this)
+            .setTitle("Editar Habitación")
+            .setView(v)
+            .setPositiveButton("Guardar") { _, _ ->
+                val updated = room.copy(number = etNumber.text.toString().trim())
+                lifecycleScope.launch {
+                    controller.updateRoom(updated, hotelId)
+                }
             }
             .setNegativeButton("Cancelar", null)
             .show()

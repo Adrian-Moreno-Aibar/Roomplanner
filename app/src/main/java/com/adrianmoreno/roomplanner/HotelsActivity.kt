@@ -3,13 +3,17 @@ package com.adrianmoreno.roomplanner
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -17,11 +21,14 @@ import com.adrianmoreno.roomplanner.adapter.HotelAdapter
 import com.adrianmoreno.roomplanner.controller.HotelController
 import com.adrianmoreno.roomplanner.models.Hotel
 import com.adrianmoreno.roomplanner.models.User
-import com.adrianmoreno.roomplanner.RoomsActivity
+import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
-class HomeActivity : AppCompatActivity() {
+class HotelsActivity : AppCompatActivity() {
+
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navigationView: NavigationView
 
     // ViewModel que maneja la lógica de negocio de hoteles
     private val controller: HotelController by viewModels()
@@ -40,7 +47,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_home)
+        setContentView(R.layout.activity_hotels)
 
         // 1) Recuperar rol y lista de hoteles del Intent
         role     = intent.getStringExtra("USER_ROLE") ?: ""
@@ -101,8 +108,13 @@ class HomeActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     // Creamos directamente usando el repositorio para obtener el nuevo ID
                     val newId = controller.repo.createHotel(
-                        Hotel(id = "", name = name, address = address,
-                            createdBy = currentUser.uid, photoUrl = photoUrl)
+                        Hotel(
+                            id        = "",
+                            name      = name,
+                            address   = address,
+                            createdBy = currentUser.uid,
+                            photoUrl  = photoUrl
+                        )
                     )
                     if (newId != null) {
                         // Si no es SUPERADMIN, añadimos el ID a la lista local
@@ -113,18 +125,52 @@ class HomeActivity : AppCompatActivity() {
                         // Recargamos con la lista actualizada
                         refreshList()
                         runOnUiThread {
-                            Toast.makeText(this@HomeActivity,
-                                "Hotel creado", Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(this@HotelsActivity, "Hotel creado", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     } else {
                         runOnUiThread {
-                            Toast.makeText(this@HomeActivity,
-                                "Error creando hotel", Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(this@HotelsActivity, "Error creando hotel", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     }
                 }
             }
         }
+
+        // Inicializar el DrawerLayout y NavigationView
+        drawerLayout = findViewById(R.id.drawer_layout)
+        navigationView = findViewById(R.id.nav_view)
+
+        // Obtener la vista del header
+        val headerView    = navigationView.getHeaderView(0)
+        val headerEmail   = headerView.findViewById<TextView>(R.id.header_email)
+        val headerUsername= headerView.findViewById<TextView>(R.id.header_username)
+
+        // Obtener el usuario actual
+        FirebaseAuth.getInstance().currentUser?.let { user ->
+            headerEmail.text = user.email
+            user.displayName?.let { headerUsername.text = it }
+        }
+
+        // Configurar el NavigationView
+        navigationView.setNavigationItemSelectedListener { menuItem ->
+            handleMenuSelection(menuItem)
+            true
+        }
+
+        // Agregar el ActionBarDrawerToggle para abrir/cerrar el menú lateral
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout,
+            R.string.open_drawer, R.string.close_drawer
+        )
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        // Habilitar la acción de abrir el menú desde el icono de la barra de acción
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     /** Refresca la lista de hoteles según el rol y datos de usuario */
@@ -159,9 +205,9 @@ class HomeActivity : AppCompatActivity() {
                 if (name.isNotEmpty() && address.isNotEmpty()) {
                     onAdd(name, address, photoUrl)
                 } else {
-                    Toast.makeText(this,
-                        "Nombre y dirección requeridos",
-                        Toast.LENGTH_SHORT).show()
+                    Toast
+                        .makeText(this, "Nombre y dirección requeridos", Toast.LENGTH_SHORT)
+                        .show()
                 }
             }
             .setNegativeButton("Cancelar", null)
@@ -213,20 +259,58 @@ class HomeActivity : AppCompatActivity() {
             .setMessage("¿Seguro que deseas borrar este hotel y todas sus habitaciones?")
             .setPositiveButton("Borrar") { _, _ ->
                 lifecycleScope.launch {
-                    // Borrado en cascada desde el repositorio
                     val ok = controller.repo.deleteHotelCascade(hotelId)
                     if (ok) {
-                        // Si no es superadmin, quitamos de la lista local
                         if (role != "SUPERADMIN") {
                             hotelIds.remove(hotelId)
                             currentUser = currentUser.copy(hotelRefs = hotelIds)
                         }
-                        // Recargamos tras borrar
                         refreshList()
                     }
                 }
             }
             .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+    // Manejar la selección de ítems en el menú lateral
+    private fun handleMenuSelection(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_dash -> {
+                // Ir a la pantalla principal
+                startActivity(Intent(this, DashboardActivity::class.java).apply {
+                    putExtra("USER_ROLE", role)
+                    putStringArrayListExtra("USER_HOTELS", ArrayList(hotelIds))
+                })
+            }
+            R.id.nav_logout -> {
+                // Cerrar sesión y volver al login
+                FirebaseAuth.getInstance().signOut()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+            R.id.nav_hotel -> {
+                // Volver a Hoteles con los mismos extras
+                startActivity(Intent(this, HotelsActivity::class.java).apply {
+                    putExtra("USER_ROLE", role)
+                    putStringArrayListExtra("USER_HOTELS", ArrayList(hotelIds))
+                })
+            }
+            else -> {
+                // Si es un ítem no manejado, solo cerramos el drawer
+                drawerLayout.closeDrawer(GravityCompat.START)
+            }
+        }
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
+    }
+
+    // Manejar el clic en el icono de la barra de acción para abrir el Drawer
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            drawerLayout.openDrawer(GravityCompat.START)
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 }

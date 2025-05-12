@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     card_view:cardElevation="4dp"
+    android:backgroundTint="@color/white"
+    android:textColor="@color/black"
     card_view:cardCornerRadius="8dp"
     android:layout_margin="8dp">
 
@@ -19,6 +21,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:textColor="@color/black"
             android:text="Habitación 101"
             android:textSize="18sp"/>
 
@@ -26,6 +29,7 @@
             android:id="@+id/roomStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:text="LIBRE"
             android:textSize="14sp"
             android:layout_marginEnd="8dp"/>
@@ -34,8 +38,18 @@
             android:id="@+id/toggleStatusButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:text="Cambiar"
             android:backgroundTint="@color/Cyan"
             />
+
+        <ImageView
+            android:id="@+id/btnRoomMenu"
+            android:layout_width="22dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/menu_tres_puntos"
+            android:layout_margin="8dp"
+            android:layout_gravity="bottom|end" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

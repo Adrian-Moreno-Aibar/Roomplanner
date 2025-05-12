@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- 1. Encabezado -->
+            <TextView
+                android:id="@+id/tvWelcome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="¡Hola, Usuario!"
+                android:textColor="@color/black"
+                android:textSize="24sp"
+                android:paddingTop="16dp"
+                android:textStyle="bold"/>
+
+            <!-- 2. Métricas KPI -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:overScrollMode="never">
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <!-- Total hoteles -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="120dp"
+                        android:layout_height="80dp"
+                        card:cardCornerRadius="8dp"
+                        card:cardElevation="4dp"
+                        android:layout_marginEnd="12dp">
+                        <TextView
+                            android:id="@+id/tvTotalHotels"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:textColor="@color/black"
+                            android:gravity="center"
+                            android:text="0\nHoteles"/>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Total habitaciones -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="120dp"
+                        android:layout_height="80dp"
+                        card:cardCornerRadius="8dp"
+                        android:textColor="@color/black"
+                        card:cardElevation="4dp"
+                        android:layout_marginEnd="12dp">
+                        <TextView
+                            android:id="@+id/tvTotalRooms"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:textColor="@color/black"
+                            android:gravity="center"
+                            android:text="0\nHabitaciones"/>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Habitaciones libres -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="120dp"
+                        android:layout_height="80dp"
+                        card:cardCornerRadius="8dp"
+                        card:cardElevation="4dp">
+                        <TextView
+                            android:id="@+id/tvFreeRooms"
+                            android:textColor="@color/black"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:text="0\nLibres"/>
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- 3. Lista de reservas -->
+            <TextView
+                android:layout_marginTop="24dp"
+                android:textColor="@color/black"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reservas"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvReservations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"/>
+
+            <Button
+                android:id="@+id/fabNewReservation"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:backgroundTint="@color/Green"
+                android:text="Añadir reserva"
+                android:paddingBottom="8dp"
+                />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- 4. Botón para crear nueva reserva
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabNewReservation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:layout_gravity="bottom|end"
+        android:contentDescription="Nueva reserva"
+        card:srcCompat="@drawable/mas"/>
+        -->
+
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

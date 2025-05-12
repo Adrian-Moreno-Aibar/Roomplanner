@@ -1,4 +1,3 @@
-// com/adrianmoreno.roomplanner.controller.RoomController.kt
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData
@@ -16,29 +15,39 @@ class RoomController(
     private val _rooms = MutableLiveData<List<Room>>()
     val rooms: LiveData<List<Room>> = _rooms
 
-    /** Cargar habitaciones para un hotel específico */
-    fun loadRoomsForHotel(hotelId: String) {
+    /** Carga todas las habitaciones de un hotel */
+    fun loadRooms(hotelId: String) {
         repo.getRoomsForHotel(hotelId) { list ->
             _rooms.postValue(list)
         }
     }
 
-    /** Crear una nueva habitación */
-    fun addRoom(room: Room, onComplete: (Boolean) -> Unit) {
+    /** Crea una habitación y recarga */
+    fun addRoom(room: Room, hotelId: String) {
         viewModelScope.launch {
-            val result = repo.createRoom(room)
-            onComplete(result != null)
-            if (result != null) {
-                loadRoomsForHotel(room.hotelRef)
-            }
+            val newId = repo.createRoom(room)
+            if (newId != null) loadRooms(hotelId)
         }
     }
 
-    /** Actualizar el estado de una habitación */
-    fun updateStatus(roomId: String, newStatus: String, hotelId: String) {
+    /** Actualiza habitación entera y recarga */
+    fun updateRoom(room: Room, hotelId: String) {
         viewModelScope.launch {
-            val ok = repo.updateRoomStatus(roomId, newStatus)
-            if (ok) loadRoomsForHotel(hotelId)
+            if (repo.updateRoom(room)) loadRooms(hotelId)
+        }
+    }
+
+    /** Cambia solo status y recarga */
+    fun toggleStatus(roomId: String, newStatus: String, hotelId: String) {
+        viewModelScope.launch {
+            if (repo.updateRoomStatus(roomId, newStatus)) loadRooms(hotelId)
+        }
+    }
+
+    /** Borra habitación y recarga */
+    fun deleteRoom(roomId: String, hotelId: String) {
+        viewModelScope.launch {
+            if (repo.deleteRoom(roomId)) loadRooms(hotelId)
         }
     }
 }

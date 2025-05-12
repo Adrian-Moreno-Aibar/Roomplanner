@@ -10,13 +10,19 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:theme="@style/Theme.Roomplanner"
         tools:targetApi="31">
+        <activity
+            android:name=".BookingFormActivity"
+            android:exported="false" />
+        <activity
+            android:name=".DashboardActivity"
+            android:exported="false" />
         <activity
             android:name=".RoomsActivity"
             android:exported="false" />
         <activity
-            android:name=".HomeActivity"
+            android:name=".HotelsActivity"
             android:exported="false" />
         <activity
             android:name=".LoginActivity"

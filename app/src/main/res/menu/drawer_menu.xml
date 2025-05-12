@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_dash"
+        android:title="Dashboard"
+        android:icon="@drawable/add" />
+    <item
+        android:id="@+id/nav_hotel"
+        android:title="Hoteles"
+        android:icon="@drawable/add" />
+
+    <item
+        android:id="@+id/nav_logout"
+        android:title="Cerrar Sesión"
+        android:icon="@drawable/add" />
+
+</menu>

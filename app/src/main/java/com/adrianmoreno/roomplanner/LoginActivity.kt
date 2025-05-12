@@ -3,7 +3,6 @@ package com.adrianmoreno.roomplanner
 import android.content.Intent
 import android.os.Bundle
 import android.util.Patterns
-import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -117,7 +116,7 @@ class LoginActivity : AppCompatActivity() {
                     return@addOnSuccessListener
                 }
                 // Redirigir a HomeActivity
-                val intent = Intent(this, HomeActivity::class.java).apply {
+                val intent = Intent(this, HotelsActivity::class.java).apply {
                     putExtra("USER_ROLE", user.role)
                     putStringArrayListExtra(
                         "USER_HOTELS",

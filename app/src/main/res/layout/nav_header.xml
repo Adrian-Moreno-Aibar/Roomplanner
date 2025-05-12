@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="160dp"
+    android:orientation="vertical"
+    android:background="@color/Cyan"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/header_image"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/gato"
+        android:layout_gravity="center"
+        android:contentDescription="Imagen de usuario"
+        android:layout_marginBottom="8dp" />
+    <TextView
+        android:id="@+id/header_email"
+        android:textColor="@color/black"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="amoraib0204@g.educaand.es"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        />
+
+    <TextView
+        android:id="@+id/header_username"
+        android:layout_width="match_parent"
+        android:textColor="@color/black"
+        android:layout_height="wrap_content"
+        android:text="RoomPlanner"
+        android:textSize="14sp"
+
+        android:gravity="center" />
+
+
+</LinearLayout>

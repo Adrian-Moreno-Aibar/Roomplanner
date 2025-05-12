@@ -1,52 +1,78 @@
-// com/adrianmoreno/roomplanner/repositories/RoomRepository.kt
 package com.adrianmoreno.roomplanner.repositories
 
 import android.util.Log
 import com.adrianmoreno.roomplanner.models.Room
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.tasks.await
 
 class RoomRepository {
 
-    private val db = FirebaseFirestore.getInstance()
+    private val db   = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
     private val COLLECTION = "rooms"
 
-    /** Crear habitación y devolver su nuevo ID */
-    suspend fun createRoom(room: Room): String? = try {
-        val ref = db.collection(COLLECTION).document()
-        val withId = room.copy(id = ref.id)
-        // guardamos
-        ref.set(withId).await()
-        // si necesitas actualizar algo en hotel, aquí podrías hacerlo
-        ref.id
-    } catch (e: Exception) {
-        Log.e("RoomRepository", "Error creando habitación", e)
-        null
-    }
-
-    /** Obtener habitaciones de un hotel */
-    fun getRoomsForHotel(hotelId: String, cb: (List<Room>) -> Unit) {
+    /** Lee en tiempo real todas las rooms de un hotel */
+    fun getRoomsForHotel(hotelId: String, callback: (List<Room>) -> Unit) {
         db.collection(COLLECTION)
             .whereEqualTo("hotelRef", hotelId)
             .get()
             .addOnSuccessListener { snaps ->
-                cb(snaps.mapNotNull { it.toObject(Room::class.java) })
+                val lst = snaps.mapNotNull { it.toObject(Room::class.java) }
+                callback(lst)
             }
-            .addOnFailureListener {
-                Log.e("RoomRepo", "Error cargando rooms", it)
-                cb(emptyList())
+            .addOnFailureListener { e ->
+                Log.e("RoomRepo", "Error leyendo habitaciones", e)
+                callback(emptyList())
             }
     }
 
-    /** Actualizar sólo el campo status */
-    suspend fun updateRoomStatus(roomId: String, newStatus: String): Boolean = try {
-        db.collection(COLLECTION).document(roomId)
-            .update("status", newStatus)
+    /** Crea una habitación y la asocia al hotel */
+    suspend fun createRoom(room: Room): String? = try {
+        val ref = db.collection(COLLECTION).document()
+        val withId = room.copy(id = ref.id)
+        ref.set(withId).await()
+        ref.id
+    } catch(e: Exception) {
+        Log.e("RoomRepo", "Error creando habitación", e)
+        null
+    }
+
+    /** Actualiza todos los campos de una habitación */
+    suspend fun updateRoom(room: Room): Boolean = try {
+        db.collection(COLLECTION)
+            .document(room.id)
+            .set(room)
             .await()
         true
-    } catch (e: Exception) {
-        Log.e("RoomRepository", "Error actualizando estado", e)
+    } catch(e: Exception) {
+        Log.e("RoomRepo", "Error actualizando habitación", e)
+        false
+    }
+
+    /** Borra una habitación concreta */
+    suspend fun deleteRoom(roomId: String): Boolean = try {
+        db.collection(COLLECTION)
+            .document(roomId)
+            .delete()
+            .await()
+        true
+    } catch(e: Exception) {
+        Log.e("RoomRepo", "Error borrando habitación", e)
+        false
+    }
+
+    /** Cambia solo el campo `status` de una habitación */
+    suspend fun updateRoomStatus(roomId: String, status: String): Boolean = try {
+        db.collection(COLLECTION)
+            .document(roomId)
+            .update("status", status)
+            .await()
+        true
+    } catch(e: Exception) {
+        Log.e("RoomRepo", "Error cambiando status", e)
         false
     }
 }
