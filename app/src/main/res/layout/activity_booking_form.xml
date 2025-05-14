@@ -20,7 +20,6 @@
                 android:id="@+id/etGuestName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
-            android:textColor="@color/black"
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Spinner de Hoteles -->
@@ -35,6 +34,7 @@
             android:layout_width="match_parent"
             android:textColor="@color/black"
             android:layout_height="wrap_content"
+            android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             android:layout_marginBottom="12dp"/>
 
         <!-- Spinner de Habitaciones -->
@@ -49,12 +49,14 @@
             android:layout_width="match_parent"
             android:textColor="@color/black"
             android:layout_height="wrap_content"
+            android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             android:layout_marginBottom="16dp"/>
 
         <!-- Fecha de check-in -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:textColor="@color/black"
+            android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             android:layout_height="wrap_content"
             android:hint="Check-in (dd/MM/yyyy)"
             android:layout_marginBottom="12dp">
@@ -62,6 +64,7 @@
                 android:id="@+id/etCheckIn"
                 android:focusable="false"
                 android:layout_width="match_parent"
+                android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
                 android:textColor="@color/black"
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
@@ -70,11 +73,13 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:textColor="@color/black"
+            android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             android:layout_height="wrap_content"
             android:hint="Check-out (dd/MM/yyyy)"
             android:layout_marginBottom="24dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etCheckOut"
+                android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
                 android:focusable="false"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>

@@ -2,15 +2,21 @@ package com.adrianmoreno.roomplanner
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.MenuItem
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.adrianmoreno.roomplanner.adapter.BookingAdapter
 import com.adrianmoreno.roomplanner.models.Booking
+import com.adrianmoreno.roomplanner.models.Room
 import com.adrianmoreno.roomplanner.models.User
+import com.google.android.material.navigation.NavigationView
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
@@ -21,19 +27,24 @@ import java.util.*
 
 class DashboardActivity : AppCompatActivity() {
 
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navigationView: NavigationView
+
     private val db = FirebaseFirestore.getInstance()
 
     private lateinit var currentUser: User
     private lateinit var role: String
     private lateinit var hotelIds: List<String>
 
+    private lateinit var hotelMap: Map<String, String>
+    private lateinit var roomMap: Map<String, String>
     private lateinit var reservationAdapter: BookingAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
-        // 1) Leer rol y hoteles del Intent
+        // 1) Recuperar rol y hoteles del Intent
         role     = intent.getStringExtra("USER_ROLE") ?: ""
         hotelIds = intent.getStringArrayListExtra("USER_HOTELS")?.toList() ?: emptyList()
         currentUser = User(
@@ -43,29 +54,87 @@ class DashboardActivity : AppCompatActivity() {
             hotelRefs = hotelIds
         )
 
-        // 2) Saludo + Fecha
+        // 2) Saludo
         findViewById<TextView>(R.id.tvWelcome).text =
             "¡Hola, ${getUserName()}!"
 
-        // 3) Métricas de hoteles con FieldPath.documentId()
-        val tvHotels = findViewById<TextView>(R.id.tvTotalHotels)
-        if (hotelIds.isEmpty()) {
-            tvHotels.text = "0\nHoteles"
-        } else {
-            db.collection("hotels")
-                .whereIn(FieldPath.documentId(), hotelIds)
-                .get()
-                .addOnSuccessListener { snaps ->
-                    tvHotels.text = "${snaps.size()}\nHoteles"
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(this,
-                        "Error cargando hoteles: ${e.localizedMessage}",
-                        Toast.LENGTH_LONG).show()
-                }
+        // 3) Carga de mapas antes de métricas y lista
+        loadHotelMap()
+
+        // 4) Drawer / NavigationView
+        drawerLayout    = findViewById(R.id.drawer_layout)
+        navigationView  = findViewById(R.id.nav_view)
+
+        // Header
+        val headerView     = navigationView.getHeaderView(0)
+        val headerEmail    = headerView.findViewById<TextView>(R.id.header_email)
+        val headerUsername = headerView.findViewById<TextView>(R.id.header_username)
+        FirebaseAuth.getInstance().currentUser?.let { user ->
+            headerEmail.text = user.email
+            user.displayName?.let { headerUsername.text = it }
         }
 
-        // 4) Métricas de habitaciones
+        navigationView.setNavigationItemSelectedListener { handleMenuSelection(it) }
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout,
+            R.string.open_drawer, R.string.close_drawer
+        )
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    }
+
+    private fun loadHotelMap() {
+        if (hotelIds.isEmpty()) {
+            hotelMap = emptyMap()
+            loadRoomMap()
+            return
+        }
+        db.collection("hotels")
+            .whereIn(FieldPath.documentId(), hotelIds)
+            .get()
+            .addOnSuccessListener { snaps ->
+                hotelMap = snaps.associate { it.id to (it.getString("name") ?: "") }
+                loadRoomMap()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this,
+                    "Error cargando hoteles: ${e.localizedMessage}",
+                    Toast.LENGTH_LONG).show()
+                hotelMap = emptyMap()
+                loadRoomMap()
+            }
+    }
+
+    private fun loadRoomMap() {
+        if (hotelIds.isEmpty()) {
+            roomMap = emptyMap()
+            initMetricsAndList()
+            return
+        }
+        db.collection("rooms")
+            .whereIn("hotelRef", hotelIds)
+            .get()
+            .addOnSuccessListener { snaps ->
+                val rooms = snaps.mapNotNull { it.toObject(Room::class.java) }
+                roomMap = rooms.associate { it.id to it.number }
+                initMetricsAndList()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this,
+                    "Error cargando habitaciones: ${e.localizedMessage}",
+                    Toast.LENGTH_LONG).show()
+                roomMap = emptyMap()
+                initMetricsAndList()
+            }
+    }
+
+    private fun initMetricsAndList() {
+        // Métrica Hoteles
+        findViewById<TextView>(R.id.tvTotalHotels).text =
+            "${hotelMap.size}\nHoteles"
+
+        // Métrica Habitaciones
         val tvRooms = findViewById<TextView>(R.id.tvTotalRooms)
         val tvFree  = findViewById<TextView>(R.id.tvFreeRooms)
         if (hotelIds.isEmpty()) {
@@ -76,36 +145,31 @@ class DashboardActivity : AppCompatActivity() {
                 .whereIn("hotelRef", hotelIds)
                 .get()
                 .addOnSuccessListener { snaps ->
-                    val rooms = snaps.mapNotNull {
-                        it.toObject(com.adrianmoreno.roomplanner.models.Room::class.java)
-                    }
+                    val rooms = snaps.mapNotNull { it.toObject(Room::class.java) }
                     tvRooms.text = "${rooms.size}\nHabitaciones"
                     tvFree.text  = "${rooms.count { it.status == "LIBRE" }}\nLibres"
                 }
-                .addOnFailureListener { e ->
-                    Toast.makeText(this,
-                        "Error cargando habitaciones: ${e.localizedMessage}",
-                        Toast.LENGTH_LONG).show()
+                .addOnFailureListener {
+                    tvRooms.text = "0\nHabitaciones"
+                    tvFree.text  = "0\nLibres"
                 }
         }
 
-        // 5) Lista de próximas reservas
+        // Lista de reservas
         setupReservationsList()
 
-        // 6) Botón nueva reserva
+        // Nuevo botón reserva
         findViewById<Button>(R.id.fabNewReservation)
             .setOnClickListener {
                 if (hotelIds.isEmpty()) {
                     Toast.makeText(this,
-                        "No tienes hoteles aún para reservar",
+                        "No tienes hoteles asignados",
                         Toast.LENGTH_SHORT).show()
                 } else {
-                    startActivity(
-                        Intent(this, BookingFormActivity::class.java).apply {
-                            putExtra("USER_HOTELS", ArrayList(hotelIds))
-                            putExtra("USER_ROLE", role)
-                        }
-                    )
+                    startActivity(Intent(this, BookingFormActivity::class.java).apply {
+                        putExtra("USER_HOTELS", ArrayList(hotelIds))
+                        putExtra("USER_ROLE", role)
+                    })
                 }
             }
     }
@@ -115,16 +179,15 @@ class DashboardActivity : AppCompatActivity() {
         rv.layoutManager = LinearLayoutManager(this)
 
         reservationAdapter = BookingAdapter(
-            onEdit = { booking: Booking ->
-                startActivity(
-                    Intent(this, BookingFormActivity::class.java).apply {
-                        putExtra("BOOKING", booking)
-                        putExtra("USER_HOTELS", ArrayList(hotelIds))
-                        putExtra("USER_ROLE", role)
-                    }
-                )
+            hotelMap, roomMap,
+            onEdit = { b ->
+                startActivity(Intent(this, BookingFormActivity::class.java).apply {
+                    putExtra("BOOKING", b)
+                    putExtra("USER_HOTELS", ArrayList(hotelIds))
+                    putExtra("USER_ROLE", role)
+                })
             },
-            onDelete = { id: String ->
+            onDelete = { id ->
                 if (hotelIds.isEmpty()) return@BookingAdapter
                 db.collection("bookings").document(id).delete()
                     .addOnSuccessListener { loadUpcomingReservations() }
@@ -140,7 +203,12 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun loadUpcomingReservations() {
+        // Evitar crash si aún no se ha inicializado el adapter
+        if (!::reservationAdapter.isInitialized) return
+
+        //Valores con los que se pide el tiempo en el que se encuentran las reservas que se muestran
         val today     = Timestamp.now()
+        val checkInDate = Timestamp(today.seconds - 3 * 24 * 3600,0)
         val nextMonth = Timestamp(today.seconds + 30 * 24 * 3600, 0)
 
         if (hotelIds.isEmpty()) {
@@ -150,14 +218,12 @@ class DashboardActivity : AppCompatActivity() {
 
         db.collection("bookings")
             .whereIn("hotelRef", hotelIds)
-            .whereGreaterThanOrEqualTo("checkInDate", today)
+            .whereGreaterThanOrEqualTo("checkInDate", checkInDate)
             .whereLessThanOrEqualTo("checkInDate", nextMonth)
             .orderBy("checkInDate", Query.Direction.ASCENDING)
             .get()
             .addOnSuccessListener { snaps ->
-                val bookings = snaps.mapNotNull {
-                    it.toObject(Booking::class.java)
-                }
+                val bookings = snaps.mapNotNull { it.toObject(Booking::class.java) }
                 reservationAdapter.submitList(bookings)
             }
             .addOnFailureListener {
@@ -166,6 +232,7 @@ class DashboardActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT).show()
             }
     }
+
 
     private fun getUserName(): String {
         // TODO: reemplaza con tu lógica real
@@ -177,4 +244,37 @@ class DashboardActivity : AppCompatActivity() {
         loadUpcomingReservations()
     }
 
+    // Menú lateral
+    private fun handleMenuSelection(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.nav_dash -> {
+                startActivity(Intent(this, DashboardActivity::class.java).apply {
+                    putExtra("USER_ROLE", role)
+                    putStringArrayListExtra("USER_HOTELS", ArrayList(hotelIds))
+                })
+            }
+            R.id.nav_hotel -> {
+                startActivity(Intent(this, HotelsActivity::class.java).apply {
+                    putExtra("USER_ROLE", role)
+                    putStringArrayListExtra("USER_HOTELS", ArrayList(hotelIds))
+                })
+            }
+            R.id.nav_logout -> {
+                FirebaseAuth.getInstance().signOut()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+            else -> drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        drawerLayout.closeDrawer(GravityCompat.START)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            drawerLayout.openDrawer(GravityCompat.START)
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
 }

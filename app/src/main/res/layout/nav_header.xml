@@ -4,7 +4,9 @@
     android:layout_height="160dp"
     android:orientation="vertical"
     android:background="@color/Cyan"
-    android:padding="16dp">
+    android:paddingBottom="5dp"
+    android:paddingLeft="19dp"
+    android:paddingTop="40dp">
 
     <ImageView
         android:id="@+id/header_image"

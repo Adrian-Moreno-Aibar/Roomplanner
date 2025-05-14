@@ -35,7 +35,7 @@ class BookingController(
     /** Edita y recarga */
     fun editBooking(b: Booking, hotelId: String, from: Timestamp, to: Timestamp) {
         viewModelScope.launch {
-            repo.update(b)
+            repo.updateIfAvailable(b)
             loadUpcoming(hotelId, from, to)
         }
     }

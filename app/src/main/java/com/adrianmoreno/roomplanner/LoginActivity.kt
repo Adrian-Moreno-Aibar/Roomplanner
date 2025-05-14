@@ -10,26 +10,53 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.adrianmoreno.roomplanner.models.User
 import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthEmailException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.auth.*
 
 class LoginActivity : AppCompatActivity() {
 
     private val auth = FirebaseAuth.getInstance()
     private val db   = FirebaseFirestore.getInstance()
 
-
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 0) Si ya hay usuario autenticado, cargar su perfil y saltar a HotelsActivity
+        auth.currentUser?.let { u ->
+            db.collection("users").document(u.uid).get()
+                .addOnSuccessListener { snap ->
+                    val user = snap.toObject(User::class.java)
+                    if (user != null) {
+                        startDashBoardActivity(user.role, user.hotelRefs)
+                    } else {
+                        // Perfil no encontrado: cerrar sesión y mostrar login
+                        auth.signOut()
+                        initLoginScreen()
+                    }
+                }
+                .addOnFailureListener {
+                    // Error leyendo perfil: cerrar sesión y mostrar login
+                    auth.signOut()
+                    initLoginScreen()
+                }
+            return
+        }
+
+        // 1) No había sesión: mostrar login
+        initLoginScreen()
+    }
+
+    private fun initLoginScreen() {
         setContentView(R.layout.activity_login)
-        val errorTv = findViewById<TextView>(R.id.errorTextView)
-        val emailEt   = findViewById<EditText>(R.id.emailEditText)
-        val passEt    = findViewById<EditText>(R.id.passwordEditText)
-        val btnLogin  = findViewById<Button>(R.id.loginButton)
-        val btnSignUp = findViewById<Button>(R.id.signupButton)
-        val forgotPasswordText = findViewById<TextView>(R.id.forgotPasswordText)
+
+        val emailEt           = findViewById<EditText>(R.id.emailEditText)
+        val passEt            = findViewById<EditText>(R.id.passwordEditText)
+        val btnLogin          = findViewById<Button>(R.id.loginButton)
+        val btnSignUp         = findViewById<Button>(R.id.signupButton)
+        val forgotPasswordTxt = findViewById<TextView>(R.id.forgotPasswordText)
 
         btnSignUp.setOnClickListener {
             DialogoCrearCuenta().show(supportFragmentManager, "CrearCuenta")
@@ -61,19 +88,17 @@ class LoginActivity : AppCompatActivity() {
                                 "Contraseña incorrecta"
                             is FirebaseNetworkException ->
                                 "Error de red, comprueba tu conexión"
-                            is FirebaseAuthEmailException  ->
+                            is FirebaseAuthEmailException ->
                                 "Ningún usuario con ese correo"
                             else ->
                                 "Credenciales no válidas"
                         }
                         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-
-
                     }
                 }
         }
 
-        forgotPasswordText.setOnClickListener {
+        forgotPasswordTxt.setOnClickListener {
             val email = emailEt.text.toString().trim()
             if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 Toast.makeText(this, "Introduce un correo válido", Toast.LENGTH_SHORT).show()
@@ -82,7 +107,8 @@ class LoginActivity : AppCompatActivity() {
             auth.sendPasswordResetEmail(email)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        Toast.makeText(this,
+                        Toast.makeText(
+                            this,
                             "Se ha enviado un correo de recuperación",
                             Toast.LENGTH_LONG
                         ).show()
@@ -104,27 +130,43 @@ class LoginActivity : AppCompatActivity() {
 
     private fun onLoginSuccess() {
         val uid = auth.currentUser!!.uid
-        // Leer perfil de usuario para saber rol y hoteles
         db.collection("users").document(uid).get()
             .addOnSuccessListener { snap ->
                 val user = snap.toObject(User::class.java)
                 if (user == null) {
-                    Toast.makeText(this,
+                    Toast.makeText(
+                        this,
                         "Perfil de usuario no encontrado",
-                        Toast.LENGTH_LONG).show()
+                        Toast.LENGTH_LONG
+                    ).show()
                     auth.signOut()
-                    return@addOnSuccessListener
+                } else {
+                    startDashBoardActivity(user.role, user.hotelRefs)
                 }
-                // Redirigir a HomeActivity
-                val intent = Intent(this, HotelsActivity::class.java).apply {
-                    putExtra("USER_ROLE", user.role)
-                    putStringArrayListExtra(
-                        "USER_HOTELS",
-                        ArrayList(user.hotelRefs)
-                    )
-                }
-                startActivity(intent)
-                finish()
             }
+            .addOnFailureListener {
+                Toast.makeText(
+                    this,
+                    "Error leyendo perfil: ${it.localizedMessage}",
+                    Toast.LENGTH_LONG
+                ).show()
+                auth.signOut()
+            }
+    }
+
+    private fun startDashBoardActivity(role: String, hotelRefs: List<String>) {
+        val intent = Intent(this, DashboardActivity::class.java).apply {
+            putExtra("USER_ROLE", role)
+            putStringArrayListExtra("USER_HOTELS", ArrayList(hotelRefs))
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    //Cerrar la app al pulsar el botón de ir hacia atras para evitar errores
+    override fun onBackPressed() {
+        super.onBackPressed()
+        // Esto cierra toda la aplicación
+        finishAffinity()
     }
 }

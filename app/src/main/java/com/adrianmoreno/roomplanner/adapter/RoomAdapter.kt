@@ -12,9 +12,9 @@ import com.adrianmoreno.roomplanner.R
 import com.adrianmoreno.roomplanner.models.Room
 
 class RoomAdapter(
-    private val onToggle:    (roomId: String, current: String) -> Unit,
-    private val onEdit:      (Room) -> Unit,
-    private val onDelete:    (String) -> Unit
+    private val onToggleClean: (roomId: String, newClean: Boolean) -> Unit,
+    private val onEdit:        (Room) -> Unit,
+    private val onDelete:      (String) -> Unit
 ) : RecyclerView.Adapter<RoomAdapter.VH>() {
 
     private val items = mutableListOf<Room>()
@@ -38,31 +38,32 @@ class RoomAdapter(
     override fun getItemCount() = items.size
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-        private val numberTv = view.findViewById<TextView>(R.id.roomNumber)
-        private val statusTv = view.findViewById<TextView>(R.id.roomStatus)
-        private val btnToggle = view.findViewById<Button>(R.id.toggleStatusButton)
-        private val btnMenu = view.findViewById<ImageView>(R.id.btnRoomMenu)
+        private val numberTv       = view.findViewById<TextView>(R.id.roomNumber)
+        private val statusTv       = view.findViewById<TextView>(R.id.roomStatus)
+        private val cleanStatusTv  = view.findViewById<TextView>(R.id.roomCleanStatus)
+        private val btnToggleClean = view.findViewById<Button>(R.id.btnToggleClean)
+        private val btnMenu        = view.findViewById<ImageView>(R.id.btnRoomMenu)
         private var current: Room? = null
 
         init {
-            // Cambiar estado al pulsar el botón
-            btnToggle.setOnClickListener {
+            btnToggleClean.setOnClickListener {
                 current?.let {
-                    val next = if (it.status == "LIBRE") "OCUPADA" else "LIBRE"
-                    onToggle(it.id, next)
+                    val toggled = !it.isClean
+                    onToggleClean(it.id, toggled)
                 }
             }
-            // Menú de editar / borrar
-            btnMenu.setOnClickListener { showMenu() }
+            btnMenu.setOnClickListener { showPopupMenu() }
         }
 
         fun bind(r: Room) {
             current = r
-            numberTv.text = r.number
-            statusTv.text = r.status
+            numberTv.text      = r.number
+            statusTv.text      = r.status
+            cleanStatusTv.text = if (r.isClean) "Limpia" else "Sucia"
+            btnToggleClean.text = if (r.isClean) "Marcar sucia" else "Marcar limpia"
         }
 
-        private fun showMenu() {
+        private fun showPopupMenu() {
             current?.let { room ->
                 PopupMenu(itemView.context, btnMenu).apply {
                     menuInflater.inflate(R.menu.menu_item_room, menu)

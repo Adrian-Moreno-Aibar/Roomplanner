@@ -13,6 +13,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class BookingAdapter(
+    private val hotelMap: Map<String, String>,
+    private val roomMap:  Map<String, String>,
     private val onEdit:   (Booking) -> Unit,
     private val onDelete: (String)  -> Unit
 ) : RecyclerView.Adapter<BookingAdapter.VH>() {
@@ -40,9 +42,11 @@ class BookingAdapter(
     override fun getItemCount(): Int = items.size
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-        private val guestTv = view.findViewById<TextView>(R.id.tvGuestName)
-        private val dateTv  = view.findViewById<TextView>(R.id.tvDates)
-        private val menuIv  = view.findViewById<ImageView>(R.id.btnBookingMenu)
+        private val guestTv   = view.findViewById<TextView>(R.id.tvGuestName)
+        private val hotelTv   = view.findViewById<TextView>(R.id.tvHotelName)
+        private val roomTv    = view.findViewById<TextView>(R.id.tvRoomNumber)
+        private val dateTv    = view.findViewById<TextView>(R.id.tvDates)
+        private val menuIv    = view.findViewById<ImageView>(R.id.btnBookingMenu)
         private var current: Booking? = null
 
         init {
@@ -53,6 +57,8 @@ class BookingAdapter(
         fun bind(b: Booking) {
             current = b
             guestTv.text = b.guestName
+            hotelTv.text = hotelMap[b.hotelRef] ?: "–"
+            roomTv.text  = "Hab. "+roomMap[b.roomRef]   ?: "–"
             dateTv.text  = "${dateFmt.format(b.checkInDate.toDate())}  –  ${dateFmt.format(b.checkOutDate.toDate())}"
         }
 

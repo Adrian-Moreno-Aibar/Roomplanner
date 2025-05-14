@@ -5,51 +5,69 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     card_view:cardElevation="4dp"
-    android:backgroundTint="@color/white"
-    android:textColor="@color/black"
     card_view:cardCornerRadius="8dp"
+    android:backgroundTint="@color/white"
     android:layout_margin="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:padding="12dp">
 
+        <!-- Número -->
         <TextView
             android:id="@+id/roomNumber"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/black"
             android:text="Habitación 101"
-            android:textSize="18sp"/>
+            android:textSize="18sp"
+            android:textColor="@color/black"/>
 
+        <!-- Estado ocupación -->
         <TextView
             android:id="@+id/roomStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/black"
             android:text="LIBRE"
             android:textSize="14sp"
-            android:layout_marginEnd="8dp"/>
+            android:textColor="@color/black"
+            android:layout_marginTop="4dp"/>
 
-        <Button
-            android:id="@+id/toggleStatusButton"
+        <!-- Estado limpieza -->
+        <TextView
+            android:id="@+id/roomCleanStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Limpia"
+            android:textSize="14sp"
             android:textColor="@color/black"
-            android:text="Cambiar"
-            android:backgroundTint="@color/Cyan"
-            />
+            android:layout_marginTop="4dp"/>
 
-        <ImageView
-            android:id="@+id/btnRoomMenu"
-            android:layout_width="22dp"
-            android:layout_height="32dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/menu_tres_puntos"
-            android:layout_margin="8dp"
-            android:layout_gravity="bottom|end" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <!-- Botón para cambiar limpieza -->
+            <Button
+                android:id="@+id/btnToggleClean"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Marcar sucia"
+                android:textColor="@color/black"
+                android:backgroundTint="@color/Cyan"/>
+
+            <!-- Menú editar/borrar -->
+            <ImageView
+                android:id="@+id/btnRoomMenu"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/menu_tres_puntos"
+                android:layout_marginStart="8dp"
+                android:contentDescription="Opciones"/>
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

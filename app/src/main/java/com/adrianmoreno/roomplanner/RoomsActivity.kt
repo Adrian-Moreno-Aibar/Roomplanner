@@ -8,13 +8,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.adrianmoreno.roomplanner.R
 import com.adrianmoreno.roomplanner.adapter.RoomAdapter
 import com.adrianmoreno.roomplanner.controller.RoomController
 import com.adrianmoreno.roomplanner.models.Room
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class RoomsActivity : AppCompatActivity() {
@@ -22,49 +21,52 @@ class RoomsActivity : AppCompatActivity() {
     private val controller = RoomController()
     private lateinit var adapter: RoomAdapter
     private lateinit var hotelId: String
+    private val db = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_rooms)
 
-        // Recogemos el ID del hotel desde el Intent
-        hotelId = intent.getStringExtra("HOTEL_ID")!!
+        hotelId = intent.getStringExtra("HOTEL_ID") ?: return
 
-        // Referencias UI
         val recycler = findViewById<RecyclerView>(R.id.roomsRecyclerView)
         val fabAdd   = findViewById<ImageView>(R.id.fabAddRoom)
 
-        // Recycler + Adapter
-        recycler.layoutManager = LinearLayoutManager(this)
+        recycler.layoutManager = GridLayoutManager(this, 2)
         adapter = RoomAdapter(
-            onToggle = { id, next ->
-                lifecycleScope.launch {
-                    controller.toggleStatus(id, next, hotelId)
-                }
+            onToggleClean = { roomId, newClean ->
+                // Actualiza isClean y recarga
+                db.collection("rooms").document(roomId)
+                    .update("isClean", newClean)
+                    .addOnSuccessListener {
+                        controller.loadRooms(hotelId)
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(this, "Error actualizando limpieza", Toast.LENGTH_SHORT).show()
+                    }
             },
             onEdit = { room ->
                 showEditDialog(room)
             },
-            onDelete = { id ->
+            onDelete = { roomId ->
                 lifecycleScope.launch {
-                    controller.deleteRoom(id, hotelId)
+                    controller.deleteRoom(roomId, hotelId)
                 }
             }
         )
         recycler.adapter = adapter
 
-        // Observamos cambios
         controller.rooms.observe(this) { list ->
             adapter.submitList(list)
         }
 
-        // Carga inicial
-        controller.loadRooms(hotelId)
-
-        // Añadir habitación
-        fabAdd.setOnClickListener {
-            showAddDialog()
+        // Carga inicial y disparador de liberación/ocupación automática
+        lifecycleScope.launch {
+            controller.syncRoomStatuses(hotelId)
+            controller.loadRooms(hotelId)
         }
+
+        fabAdd.setOnClickListener { showAddDialog() }
     }
 
     private fun showAddDialog() {
@@ -76,11 +78,12 @@ class RoomsActivity : AppCompatActivity() {
             .setTitle("Añadir Habitación")
             .setView(v)
             .setPositiveButton("Añadir") { _, _ ->
-                val num = etNumber.text.toString().trim()
+                val num = "Hab. "+etNumber.text.toString().trim()
                 if (num.isNotEmpty()) {
                     lifecycleScope.launch {
                         controller.addRoom(
-                            Room(id="", number=num, status="LIBRE", hotelRef=hotelId),
+                            Room(id = "", hotelRef = hotelId, number = num,
+                                status = "LIBRE", isClean = true, reservedRanges = emptyList()),
                             hotelId
                         )
                     }

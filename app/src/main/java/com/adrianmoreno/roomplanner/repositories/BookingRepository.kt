@@ -5,56 +5,96 @@ import com.adrianmoreno.roomplanner.models.Booking
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.FirebaseFirestoreException.Code
 import kotlinx.coroutines.tasks.await
 
 class BookingRepository {
     private val db = FirebaseFirestore.getInstance()
     private val COL = "bookings"
 
-    /** Devuelve reservas que se solapen con el rango dado para validar conflictos */
+    /**
+     * Recupera todas las reservas del mismo hotel y habitación,
+     * filtra en servidor por checkInDate < checkOut, y si falta índice
+     * hace fallback trayendo todas y filtrando ambos extremos en cliente.
+     */
     private suspend fun getOverlapping(
+        hotelId: String,
         roomId: String,
         checkIn: Timestamp,
         checkOut: Timestamp
-    ): List<Booking> = try {
-        db.collection(COL)
-            .whereEqualTo("roomRef", roomId)
-            .whereLessThan("checkInDate", checkOut)
-            .whereGreaterThan("checkOutDate", checkIn)
-            .get()
-            .await()
-            .mapNotNull { it.toObject(Booking::class.java) }
-    } catch (e: Exception) {
-        Log.e("BookingRepo", "Error comprobando solapamientos", e)
-        emptyList()
+    ): List<Booking> {
+        return try {
+            // Intento consulta con una desigualdad (puede requerir índice compuesto)
+            val snaps = db.collection(COL)
+                .whereEqualTo("hotelRef", hotelId)
+                .whereEqualTo("roomRef", roomId)
+                .whereLessThan("checkInDate", checkOut)
+                .get()
+                .await()
+
+            snaps.mapNotNull { it.toObject(Booking::class.java) }
+                .filter { existing ->
+                    // segunda desigualdad en cliente
+                    existing.checkOutDate.toDate().after(checkIn.toDate())
+                }
+
+        } catch (e: FirebaseFirestoreException) {
+            // Si falla por falta de índice, fallback total en cliente
+            if (e.code == Code.FAILED_PRECONDITION) {
+                Log.w("BookingRepo", "Índice faltante, fallback cliente")
+                val snaps = db.collection(COL)
+                    .whereEqualTo("hotelRef", hotelId)
+                    .whereEqualTo("roomRef", roomId)
+                    .get()
+                    .await()
+
+                snaps.mapNotNull { it.toObject(Booking::class.java) }
+                    .filter { existing ->
+                        existing.checkInDate.toDate().before(checkOut.toDate()) &&
+                                existing.checkOutDate.toDate().after(checkIn.toDate())
+                    }
+            } else {
+                Log.e("BookingRepo", "Error comprobando solapamientos", e)
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("BookingRepo", "Error comprobando solapamientos", e)
+            emptyList()
+        }
     }
 
     /**
-     * Crea una reserva solo si no hay solapamientos.
-     * Además añade el rango en el array reservedRanges de la Room.
+     * Crea la reserva solo si no hay solapamientos.
+     * Además añade el rango en `reservedRanges` de la Room.
      * Devuelve el ID nuevo, o null si hay conflicto o error.
      */
     suspend fun createIfAvailable(b: Booking): String? {
         // 1) validar solapamientos
-        val conflicts = getOverlapping(b.roomRef, b.checkInDate, b.checkOutDate)
+        val conflicts = getOverlapping(
+            hotelId  = b.hotelRef,
+            roomId   = b.roomRef,
+            checkIn  = b.checkInDate,
+            checkOut = b.checkOutDate
+        )
         if (conflicts.isNotEmpty()) {
             Log.w("BookingRepo", "Conflicto de fechas: $conflicts")
             return null
         }
         // 2) crear booking
         return try {
-            val ref = db.collection(COL).document()
+            val ref    = db.collection(COL).document()
             val withId = b.copy(id = ref.id)
             ref.set(withId).await()
             // 3) actualizar Room para anotar el rango reservado
-            val roomRef = db.collection("rooms").document(b.roomRef)
-            roomRef.update(
-                "reservedRanges",
-                FieldValue.arrayUnion(
-                    mapOf("from" to b.checkInDate, "to" to b.checkOutDate)
+            db.collection("rooms").document(b.roomRef)
+                .update(
+                    "reservedRanges",
+                    FieldValue.arrayUnion(
+                        mapOf("from" to b.checkInDate, "to" to b.checkOutDate)
+                    )
                 )
-            ).await()
+                .await()
             ref.id
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error creando reserva", e)
@@ -62,40 +102,55 @@ class BookingRepository {
         }
     }
 
-    /** Actualiza una reserva existente (sin revalidar solapamientos) */
-    suspend fun update(b: Booking): Boolean = try {
-        db.collection(COL).document(b.id).set(b).await()
-        true
-    } catch (e: Exception) {
-        Log.e("BookingRepo", "Error actualizando reserva", e)
-        false
+    /**
+     * Actualiza la reserva solo si no hay conflictos (excluyendo ella misma).
+     * Devuelve true si se actualizó, false si hay conflicto o error.
+     */
+    suspend fun updateIfAvailable(b: Booking): Boolean {
+        // 1) validar solapamientos excluyendo la propia reserva
+        val conflicts = getOverlapping(
+            hotelId  = b.hotelRef,
+            roomId   = b.roomRef,
+            checkIn  = b.checkInDate,
+            checkOut = b.checkOutDate
+        ).filter { it.id != b.id }
+
+        if (conflicts.isNotEmpty()) {
+            Log.w("BookingRepo", "Edición cancelada, conflicto: $conflicts")
+            return false
+        }
+        // 2) aplicar update
+        return try {
+            db.collection(COL).document(b.id).set(b).await()
+            true
+        } catch (e: Exception) {
+            Log.e("BookingRepo", "Error actualizando reserva", e)
+            false
+        }
     }
 
     /**
-     * Borra una reserva y elimina el rango de reservedRanges de la Room.
+     * Borra una reserva y remueve el rango de `reservedRanges` de la Room.
      */
     suspend fun delete(id: String): Boolean {
         return try {
-            // 1) Leer la reserva para conocer sus fechas
             val snap = db.collection(COL).document(id).get().await()
-            val b = snap.toObject(Booking::class.java)
+            val b    = snap.toObject(Booking::class.java)
             if (b == null) {
                 Log.w("BookingRepo", "Reserva no encontrada al borrar: $id")
                 return false
             }
-
-            // 2) Borrar la reserva
+            // 1) borrar reserva
             db.collection(COL).document(id).delete().await()
-
-            // 3) Eliminar el rango de reservedRanges de la Room
-            val roomRef = db.collection("rooms").document(b.roomRef)
-            roomRef.update(
-                "reservedRanges",
-                FieldValue.arrayRemove(
-                    mapOf("from" to b.checkInDate, "to" to b.checkOutDate)
+            // 2) eliminar rango reservado
+            db.collection("rooms").document(b.roomRef)
+                .update(
+                    "reservedRanges",
+                    FieldValue.arrayRemove(
+                        mapOf("from" to b.checkInDate, "to" to b.checkOutDate)
+                    )
                 )
-            ).await()
-
+                .await()
             true
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error borrando reserva", e)
@@ -116,7 +171,7 @@ class BookingRepository {
             .whereEqualTo("hotelRef", hotelId)
             .whereGreaterThanOrEqualTo("checkInDate", from)
             .whereLessThanOrEqualTo("checkInDate", to)
-            .orderBy("checkInDate", Query.Direction.ASCENDING)
+            .orderBy("checkInDate")
             .get()
             .addOnSuccessListener { snaps ->
                 callback(snaps.mapNotNull { it.toObject(Booking::class.java) })

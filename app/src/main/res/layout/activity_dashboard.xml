@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:card="http://schemas.android.com/apk/res-auto"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:card="http://schemas.android.com/tools"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -13,6 +14,7 @@
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
+            android:paddingBottom="40dp"
             android:layout_height="wrap_content">
 
             <!-- 1. Encabezado -->
@@ -94,7 +96,7 @@
                 android:textColor="@color/black"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Reservas"
+                android:text="Reservas Próximas"
                 android:textSize="18sp"
                 android:textStyle="bold"/>
 
@@ -124,7 +126,18 @@
         android:layout_gravity="bottom|end"
         android:contentDescription="Nueva reserva"
         card:srcCompat="@drawable/mas"/>
+
+
         -->
 
+    <!-- 2) NavigationView en el Drawer -->
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        app:menu="@menu/drawer_menu"
+        app:headerLayout="@layout/nav_header"/>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>
