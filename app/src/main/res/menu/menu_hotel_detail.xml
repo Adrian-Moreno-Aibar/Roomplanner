@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@drawable/logo_prov2"
+        android:title="Dashboard" />
+    <item
+        android:id="@+id/nav_rooms"
+        android:icon="@drawable/logo_prov2"
+        android:title="Habitaciones" />
+    <item
+        android:id="@+id/nav_staff"
+        android:icon="@drawable/logo_prov2"
+        android:title="Empleados" />
+</menu>
