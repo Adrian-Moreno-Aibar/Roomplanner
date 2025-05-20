@@ -58,7 +58,7 @@ class BookingAdapter(
             current = b
             guestTv.text = b.guestName
             hotelTv.text = hotelMap[b.hotelRef] ?: "–"
-            roomTv.text  = "Hab. "+roomMap[b.roomRef]   ?: "–"
+            roomTv.text  = roomMap[b.roomRef]   ?: "–"
             dateTv.text  = "${dateFmt.format(b.checkInDate.toDate())}  –  ${dateFmt.format(b.checkOutDate.toDate())}"
         }
 

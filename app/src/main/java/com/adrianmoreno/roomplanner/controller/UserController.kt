@@ -1,4 +1,4 @@
-// UserController.kt
+// src/main/java/com/adrianmoreno/roomplanner/controller/UserController.kt
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData
@@ -11,41 +11,36 @@ import kotlinx.coroutines.launch
 
 class UserController(
     private val repo: UserRepository = UserRepository()
-): ViewModel() {
+) : ViewModel() {
 
-    private val _users = MutableLiveData<List<User>>()
-    val users: LiveData<List<User>> = _users
+    private val _cleaners = MutableLiveData<List<User>>()
+    val cleaners: LiveData<List<User>> = _cleaners
 
-    init {
-        loadAllUsers()
-    }
-
-    private fun loadAllUsers() {
-        repo.getAllUsers { list ->
-            _users.postValue(list)
+    /** Carga sólo los CLEANER asignados al hotel */
+    fun loadCleanersForHotel(hotelId: String) {
+        repo.getCleanersForHotel(hotelId) { list ->
+            _cleaners.postValue(list)
         }
     }
 
+    /** Crea el perfil en Firestore y recarga la lista */
     fun addUser(user: User) {
         viewModelScope.launch {
-            if (repo.createUserProfile(user)) {
-                loadAllUsers()
+            val success = repo.createUserProfile(user)
+            if (success) {
+                // recarga tras crear
+                loadCleanersForHotel(user.hotelRefs.first())
             }
         }
     }
 
-    fun updateUser(user: User) {
+    /** Borra un usuario y recarga la lista */
+    fun deleteUser(uid: String, hotelId: String) {
         viewModelScope.launch {
-            if (repo.updateUser(user)) {
-                loadAllUsers()
-            }
-        }
-    }
-
-    fun deleteUser(uid: String) {
-        viewModelScope.launch {
-            if (repo.deleteUser(uid)) {
-                loadAllUsers()
+            val success = repo.deleteUser(uid)
+            if (success) {
+                // recarga tras borrar
+                loadCleanersForHotel(hotelId)
             }
         }
     }

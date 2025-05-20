@@ -25,7 +25,7 @@ class DialogoCrearCuenta : DialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val view = inflater.inflate(R.layout.fragment_dialogo_crear_cuenta, container, false)
+        val view = inflater.inflate(R.layout.fragment_dialog_new_account, container, false)
 
         val emailEt   = view.findViewById<EditText>(R.id.emailEditText)
         val passEt    = view.findViewById<EditText>(R.id.passwordEditText)

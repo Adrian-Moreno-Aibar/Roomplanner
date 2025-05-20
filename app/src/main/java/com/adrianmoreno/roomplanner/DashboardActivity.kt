@@ -54,9 +54,6 @@ class DashboardActivity : AppCompatActivity() {
             hotelRefs = hotelIds
         )
 
-        // 2) Saludo
-        findViewById<TextView>(R.id.tvWelcome).text =
-            "¡Hola, ${getUserName()}!"
 
         // 3) Carga de mapas antes de métricas y lista
         loadHotelMap()
@@ -208,7 +205,7 @@ class DashboardActivity : AppCompatActivity() {
 
         //Valores con los que se pide el tiempo en el que se encuentran las reservas que se muestran
         val today     = Timestamp.now()
-        val checkInDate = Timestamp(today.seconds - 3 * 24 * 3600,0)
+        val checkInDate = Timestamp(today.seconds - 2 * 24 * 3600,0)
         val nextMonth = Timestamp(today.seconds + 30 * 24 * 3600, 0)
 
         if (hotelIds.isEmpty()) {
@@ -234,10 +231,7 @@ class DashboardActivity : AppCompatActivity() {
     }
 
 
-    private fun getUserName(): String {
-        // TODO: reemplaza con tu lógica real
-        return "Adrián"
-    }
+
 
     override fun onResume() {
         super.onResume()
@@ -276,5 +270,11 @@ class DashboardActivity : AppCompatActivity() {
             return true
         }
         return super.onOptionsItemSelected(item)
+    }
+    //Cerrar la app al pulsar el botón de ir hacia atras para evitar errores
+    override fun onBackPressed() {
+        super.onBackPressed()
+        // Esto cierra toda la aplicación
+        finishAffinity()
     }
 }

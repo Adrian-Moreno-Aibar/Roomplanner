@@ -83,9 +83,9 @@ class HotelsActivity : AppCompatActivity() {
         adapter = HotelAdapter(
             onClick  = { hotel ->
                 // Al tocar un hotel, abrimos la pantalla de habitaciones
-                startActivity(Intent(this, RoomsActivity::class.java).apply {
-                    putExtra("HOTEL_ID", hotel.id)
-                    putExtra("HOTEL_NAME", hotel.name)
+                startActivity(Intent(this, HotelDetailActivity::class.java).apply {
+                    putExtra(HotelDetailActivity.EXTRA_HOTEL_ID,   hotel.id)
+                    putExtra(HotelDetailActivity.EXTRA_HOTEL_NAME, hotel.name)
                 })
             },
             onEdit   = { hotel -> showEditHotelDialog(hotel) },
@@ -190,7 +190,7 @@ class HotelsActivity : AppCompatActivity() {
      */
     private fun showAddHotelDialog(onAdd: (String, String, String) -> Unit) {
         val dialogView = LayoutInflater.from(this)
-            .inflate(R.layout.dialogo_crear_hotel, null)
+            .inflate(R.layout.dialog_new_hotel, null)
         val etName  = dialogView.findViewById<EditText>(R.id.editHotelName)
         val etAddr  = dialogView.findViewById<EditText>(R.id.editHotelAddress)
         val etPhoto = dialogView.findViewById<EditText>(R.id.editHotelPhoto)
@@ -220,7 +220,7 @@ class HotelsActivity : AppCompatActivity() {
      */
     private fun showEditHotelDialog(hotel: Hotel) {
         val dialogView = LayoutInflater.from(this)
-            .inflate(R.layout.dialogo_crear_hotel, null)
+            .inflate(R.layout.dialog_new_hotel, null)
         val etName  = dialogView.findViewById<EditText>(R.id.editHotelName)
         val etAddr  = dialogView.findViewById<EditText>(R.id.editHotelAddress)
         val etPhoto = dialogView.findViewById<EditText>(R.id.editHotelPhoto)
@@ -312,5 +312,12 @@ class HotelsActivity : AppCompatActivity() {
             return true
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    //Cerrar la app al pulsar el botón de ir hacia atras para evitar errores
+    override fun onBackPressed() {
+        super.onBackPressed()
+        // Esto cierra toda la aplicación
+        finishAffinity()
     }
 }

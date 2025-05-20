@@ -22,7 +22,7 @@
                 android:id="@+id/tvWelcome"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="¡Hola, Usuario!"
+                android:text="Bienvenid@!!"
                 android:textColor="@color/black"
                 android:textSize="24sp"
                 android:paddingTop="16dp"

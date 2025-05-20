@@ -71,7 +71,7 @@ class RoomsActivity : AppCompatActivity() {
 
     private fun showAddDialog() {
         val v = LayoutInflater.from(this)
-            .inflate(R.layout.dialogo_crear_habitacion, null)
+            .inflate(R.layout.dialog_new_room, null)
         val etNumber = v.findViewById<EditText>(R.id.editRoomNumber)
 
         AlertDialog.Builder(this)
@@ -97,7 +97,7 @@ class RoomsActivity : AppCompatActivity() {
 
     private fun showEditDialog(room: Room) {
         val v = LayoutInflater.from(this)
-            .inflate(R.layout.dialogo_crear_habitacion, null)
+            .inflate(R.layout.dialog_new_room, null)
         val etNumber = v.findViewById<EditText>(R.id.editRoomNumber)
         etNumber.setText(room.number)
 

@@ -15,12 +15,12 @@ class UserRepository(
     private val COLLECTION = "users"
 
     // Referencia al documento del usuario actual
-    fun getCurrentUserDoc(): DocumentReference =
-        db.collection(COLLECTION).document(auth.currentUser!!.uid)
+    fun getCurrentUserDoc(): DocumentReference? =
+        auth.currentUser?.uid?.let { db.collection(COLLECTION).document(it) }
 
     // Crear perfil de usuario tras registro
     suspend fun createUserProfile(user: User): Boolean = try {
-        getCurrentUserDoc().set(user).await()
+        getCurrentUserDoc()?.set(user)?.await()
         true
     } catch (e: Exception) {
         Log.e("UserRepo", "Error creando perfil", e)
@@ -40,7 +40,7 @@ class UserRepository(
             }
     }
 
-    // Listar todos los usuarios
+    // (OPCIONAL) Listar todos los usuarios — solo si tus reglas de Firestore lo permiten
     fun getAllUsers(callback: (List<User>) -> Unit) {
         db.collection(COLLECTION).get()
             .addOnSuccessListener { result ->
@@ -73,5 +73,23 @@ class UserRepository(
     } catch (e: Exception) {
         Log.e("UserRepo", "Error eliminando usuario", e)
         false
+    }
+
+    /**
+     * Devuelve una lista de usuarios con rol CLEANER asignados al hotel especificado.
+     */
+    fun getCleanersForHotel(hotelId: String, callback: (List<User>) -> Unit) {
+        db.collection(COLLECTION)
+            .whereEqualTo("role", "CLEANER")
+            .whereArrayContains("hotelRefs", hotelId)
+            .get()
+            .addOnSuccessListener { snaps ->
+                val users = snaps.mapNotNull { it.toObject(User::class.java) }
+                callback(users)
+            }
+            .addOnFailureListener {
+                Log.e("UserRepo", "Error obteniendo cleaners para hotel", it)
+                callback(emptyList())
+            }
     }
 }
