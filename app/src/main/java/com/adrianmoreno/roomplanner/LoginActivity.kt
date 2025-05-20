@@ -1,5 +1,6 @@
 package com.adrianmoreno.roomplanner
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Patterns
@@ -24,7 +25,7 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 0) Si ya hay usuario autenticado, cargar su perfil y saltar a HotelsActivity
+        // 0) Si ya hay usuario autenticado, cargar su perfil y saltar
         auth.currentUser?.let { u ->
             db.collection("users").document(u.uid).get()
                 .addOnSuccessListener { snap ->
@@ -32,13 +33,11 @@ class LoginActivity : AppCompatActivity() {
                     if (user != null) {
                         startDashBoardActivity(user.role, user.hotelRefs)
                     } else {
-                        // Perfil no encontrado: cerrar sesión y mostrar login
                         auth.signOut()
                         initLoginScreen()
                     }
                 }
                 .addOnFailureListener {
-                    // Error leyendo perfil: cerrar sesión y mostrar login
                     auth.signOut()
                     initLoginScreen()
                 }
@@ -57,6 +56,7 @@ class LoginActivity : AppCompatActivity() {
         val btnLogin          = findViewById<Button>(R.id.loginButton)
         val btnSignUp         = findViewById<Button>(R.id.signupButton)
         val forgotPasswordTxt = findViewById<TextView>(R.id.forgotPasswordText)
+        val inviteCodeTxt     = findViewById<TextView>(R.id.inviteCodeText)
 
         btnSignUp.setOnClickListener {
             DialogoCrearCuenta().show(supportFragmentManager, "CrearCuenta")
@@ -126,6 +126,29 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
         }
+
+        // NUEVO: opción de pegar código de invitación
+        inviteCodeTxt.setOnClickListener {
+            val input = EditText(this).apply {
+                hint = "Pega aquí tu código"
+            }
+            AlertDialog.Builder(this)
+                .setTitle("Código de invitación")
+                .setView(input)
+                .setPositiveButton("Aceptar") { _, _ ->
+                    val token = input.text.toString().trim()
+                    if (token.isEmpty()) {
+                        Toast.makeText(this, "Introduce un código válido", Toast.LENGTH_SHORT).show()
+                    } else {
+                        startActivity(
+                            Intent(this, AcceptInvitationActivity::class.java)
+                                .putExtra("INV_TOKEN", token)
+                        )
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
     }
 
     private fun onLoginSuccess() {
@@ -163,10 +186,8 @@ class LoginActivity : AppCompatActivity() {
         finish()
     }
 
-    //Cerrar la app al pulsar el botón de ir hacia atras para evitar errores
     override fun onBackPressed() {
         super.onBackPressed()
-        // Esto cierra toda la aplicación
         finishAffinity()
     }
 }

@@ -72,8 +72,8 @@ class EmployeesFragment : Fragment() {
 
         // Abrir diálogo para crear nuevo cleaner
         fab.setOnClickListener {
-            NewEmployeeDialogFragment(hotelId, userCtrl)
-                .show(childFragmentManager, "NewEmployee")
+            InviteCleanerDialogFragment(hotelId)
+                .show(childFragmentManager, "InviteCleaner")
         }
 
         return view

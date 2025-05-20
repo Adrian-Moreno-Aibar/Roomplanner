@@ -28,6 +28,9 @@
             android:name=".HotelsActivity"
             android:exported="false" />
         <activity
+            android:name=".AcceptInvitationActivity"
+            android:exported="false" />
+        <activity
             android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
