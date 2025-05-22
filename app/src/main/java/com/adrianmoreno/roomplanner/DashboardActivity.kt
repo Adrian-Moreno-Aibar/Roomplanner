@@ -310,7 +310,27 @@ class DashboardActivity : AppCompatActivity() {
         super.onBackPressed()
         finishAffinity()
     }
+
     fun reloadHotels() {
-        hotelController.loadHotelsForUser(currentUser)
+        // 1) Volver a obtener la lista de hoteles del usuario (viene por Intent o desde FirebaseAuth)
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        // Si quisieras leerlos de Firestore:
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .get()
+            .addOnSuccessListener { snap ->
+                val updatedRefs = snap.get("hotelRefs") as? List<String> ?: emptyList()
+                // Actualiza tu estado interno
+                hotelIds = updatedRefs
+                // Y vuelve a disparar la carga de mapas y métricas
+                loadHotelMap()
+            }
+            .addOnFailureListener {
+                Toast.makeText(this,
+                    "No se pudieron recargar hoteles: ${it.localizedMessage}",
+                    Toast.LENGTH_LONG).show()
+            }
     }
 }
