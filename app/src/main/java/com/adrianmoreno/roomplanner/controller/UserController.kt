@@ -23,6 +23,16 @@ class UserController(
         }
     }
 
+    /** Elimina la referencia al hotel del cleaner y recarga la lista */
+    fun removeCleanerFromHotel(uid: String, hotelId: String) {
+        viewModelScope.launch {
+            val ok = repo.removeCleanerFromHotel(uid, hotelId)
+            if (ok) {
+                loadCleanersForHotel(hotelId)
+            }
+        }
+    }
+
     /** Crea el perfil en Firestore y recarga la lista */
     fun addUser(user: User) {
         viewModelScope.launch {
@@ -44,4 +54,6 @@ class UserController(
             }
         }
     }
+
+
 }

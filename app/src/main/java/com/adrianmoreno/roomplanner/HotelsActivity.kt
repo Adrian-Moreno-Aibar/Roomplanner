@@ -4,8 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -63,7 +63,7 @@ class HotelsActivity : AppCompatActivity() {
         // 2) Obtener referencias a vistas del layout
         val titleTv  = findViewById<TextView>(R.id.titleTextView)
         val recycler = findViewById<RecyclerView>(R.id.hotelsRecyclerView)
-        val fabAdd   = findViewById<ImageView>(R.id.fabAddHotel)
+        val fabAdd   = findViewById<Button>(R.id.fabAddHotel)
 
         // 3) Ajustar título según rol
         titleTv.text = when (role) {

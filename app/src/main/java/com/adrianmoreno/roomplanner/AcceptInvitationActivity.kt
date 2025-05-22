@@ -9,10 +9,14 @@ import androidx.lifecycle.lifecycleScope
 import com.adrianmoreno.roomplanner.models.User
 import com.adrianmoreno.roomplanner.repositories.InvitationRepository
 import com.adrianmoreno.roomplanner.repositories.UserRepository
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class AcceptInvitationActivity : AppCompatActivity() {
 
@@ -27,32 +31,40 @@ class AcceptInvitationActivity : AppCompatActivity() {
         setContentView(R.layout.activity_accept_invitation)
 
         token = intent.getStringExtra("INV_TOKEN") ?: run {
-            finish(); return
+            finish()
+            return
         }
 
         val nameEt  = findViewById<EditText>(R.id.etName)
         val emailEt = findViewById<EditText>(R.id.etEmail)
         val passEt  = findViewById<EditText>(R.id.etPassword)
-        val btn     = findViewById<Button>(R.id.btnAccept)
+        val btn     = findViewById<Button>(R.id.btnAccept).apply {
+            isEnabled = false
+        }
 
-        // Fetch invitación de forma suspend
+        // 1) Cargamos y validamos la invitación
         lifecycleScope.launch {
             val inv = invRepo.getInvitationSuspend(token)
-            if (inv == null || inv.used || inv.expiresAt.seconds < com.google.firebase.Timestamp.now().seconds) {
-                runOnUiThread {
-                    Toast.makeText(this@AcceptInvitationActivity,
-                        "Invitación inválida o caducada", Toast.LENGTH_LONG).show()
+            if (inv == null || inv.used || inv.expiresAt.seconds < Timestamp.now().seconds) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@AcceptInvitationActivity,
+                        "Invitación inválida o caducada",
+                        Toast.LENGTH_LONG
+                    ).show()
                     finish()
                 }
                 return@launch
             }
-            // Pre‑llenar campos en main thread
-            runOnUiThread {
+
+            // 2) Pre-llenamos campos y habilitamos botón
+            withContext(Dispatchers.Main) {
                 nameEt.setText(inv.name)
                 emailEt.setText(inv.email)
+                btn.isEnabled = true
             }
 
-            // Listener del botón de registro
+            // 3) Listener para aceptar
             btn.setOnClickListener {
                 val name  = nameEt.text.toString().trim()
                 val email = emailEt.text.toString().trim()
@@ -65,38 +77,67 @@ class AcceptInvitationActivity : AppCompatActivity() {
                     ).show()
                     return@setOnClickListener
                 }
+
+                // 4) Procesamos registro o asociación
                 lifecycleScope.launch {
                     try {
-                        // 1) Crear cuenta
-                        auth.createUserWithEmailAndPassword(email, pass).await()
-                        val uid = auth.currentUser!!.uid
+                        // ── NUEVO: comprobamos si el email ya existe ──
+                        val methods = auth.fetchSignInMethodsForEmail(email).await().signInMethods
+                        if (methods.isNullOrEmpty()) {
+                            // no existe → creamos usuario nuevo
+                            auth.createUserWithEmailAndPassword(email, pass).await()
+                            val uid = auth.currentUser!!.uid
 
-                        // 2) Crear perfil con el **hotelId correcto**:
-                        val user = User(
-                            uid       = uid,
-                            name      = name,
-                            email     = email,
-                            role      = "CLEANER",
-                            hotelRefs = listOf(inv.hotelId)   // aquí va inv.hotelId
-                        )
-                        userRepo.createUserProfile(user)
+                            val newUser = User(
+                                uid       = uid,
+                                name      = name,
+                                email     = email,
+                                role      = "CLEANER",
+                                hotelRefs = listOf(inv.hotelId)
+                            )
+                            userRepo.createUserProfile(newUser)
+                        } else {
+                            // ya existe → solo lo asociamos al hotel
+                            val snap = db.collection("users")
+                                .whereEqualTo("email", email)
+                                .get()
+                                .await()
+                            val existingUid = snap.documents.firstOrNull()?.id
+                            if (existingUid != null) {
+                                db.collection("users").document(existingUid)
+                                    .update("hotelRefs", FieldValue.arrayUnion(inv.hotelId))
+                                    .await()
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(
+                                        this@AcceptInvitationActivity,
+                                        "Error: usuario no encontrado tras colisión",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                return@launch
+                            }
+                        }
 
-                        // 3) Marcar invitación usada
+                        // 5) Marcamos invitación como usada
                         invRepo.markUsed(token)
 
-                        runOnUiThread {
+                        // 6) Feedback y cierre
+                        withContext(Dispatchers.Main) {
                             Toast.makeText(
                                 this@AcceptInvitationActivity,
-                                "Cuenta creada con éxito",
+                                "¡Bienvenido!",
                                 Toast.LENGTH_LONG
                             ).show()
+                            setResult(RESULT_OK)
                             finish()
                         }
+
                     } catch (e: Exception) {
-                        runOnUiThread {
+                        withContext(Dispatchers.Main) {
                             Toast.makeText(
                                 this@AcceptInvitationActivity,
-                                "Error registro: ${e.localizedMessage}",
+                                "Correo ya en uso, por favor use el código en su Dashboard",
                                 Toast.LENGTH_LONG
                             ).show()
                         }

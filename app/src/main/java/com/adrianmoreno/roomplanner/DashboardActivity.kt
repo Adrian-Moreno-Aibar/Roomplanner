@@ -10,9 +10,11 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.adrianmoreno.roomplanner.adapter.BookingAdapter
+import com.adrianmoreno.roomplanner.controller.HotelController
 import com.adrianmoreno.roomplanner.models.Booking
 import com.adrianmoreno.roomplanner.models.Room
 import com.adrianmoreno.roomplanner.models.User
@@ -22,13 +24,16 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import java.text.SimpleDateFormat
-import java.util.*
 
 class DashboardActivity : AppCompatActivity() {
 
+    companion object {
+        const val REQ_JOIN = 1001
+    }
+
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navigationView: NavigationView
+    private lateinit var hotelController: HotelController
 
     private val db = FirebaseFirestore.getInstance()
 
@@ -44,6 +49,9 @@ class DashboardActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
+        // 0) Init ViewModel
+        hotelController = ViewModelProvider(this).get(HotelController::class.java)
+
         // 1) Recuperar rol y hoteles del Intent
         role     = intent.getStringExtra("USER_ROLE") ?: ""
         hotelIds = intent.getStringArrayListExtra("USER_HOTELS")?.toList() ?: emptyList()
@@ -54,20 +62,19 @@ class DashboardActivity : AppCompatActivity() {
             hotelRefs = hotelIds
         )
 
-
-        // 3) Carga de mapas antes de métricas y lista
+        // 2) Carga de mapas antes de métricas y lista
         loadHotelMap()
 
-        // 4) Drawer / NavigationView
-        drawerLayout    = findViewById(R.id.drawer_layout)
-        navigationView  = findViewById(R.id.nav_view)
+        // 3) Drawer / NavigationView
+        drawerLayout   = findViewById(R.id.drawer_layout)
+        navigationView = findViewById(R.id.nav_view)
 
         // Header
         val headerView     = navigationView.getHeaderView(0)
         val headerEmail    = headerView.findViewById<TextView>(R.id.header_email)
         val headerUsername = headerView.findViewById<TextView>(R.id.header_username)
         FirebaseAuth.getInstance().currentUser?.let { user ->
-            headerEmail.text = user.email
+            headerEmail.text      = user.email
             user.displayName?.let { headerUsername.text = it }
         }
 
@@ -169,6 +176,13 @@ class DashboardActivity : AppCompatActivity() {
                     })
                 }
             }
+
+        // Botón "Unirse a hotel"
+        findViewById<Button>(R.id.buttonJoinHotel)
+            .setOnClickListener {
+                // Abrimos el diálogo que pide el código
+                JoinHotelDialogFragment().show(supportFragmentManager, "JoinHotel")
+            }
     }
 
     private fun setupReservationsList() {
@@ -200,13 +214,11 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun loadUpcomingReservations() {
-        // Evitar crash si aún no se ha inicializado el adapter
         if (!::reservationAdapter.isInitialized) return
 
-        //Valores con los que se pide el tiempo en el que se encuentran las reservas que se muestran
-        val today     = Timestamp.now()
-        val checkInDate = Timestamp(today.seconds - 2 * 24 * 3600,0)
-        val nextMonth = Timestamp(today.seconds + 30 * 24 * 3600, 0)
+        val today = Timestamp.now()
+        val checkInDate = Timestamp(today.seconds - 2 * 24 * 3600, 0)
+        val nextMonth   = Timestamp(today.seconds + 30 * 24 * 3600, 0)
 
         if (hotelIds.isEmpty()) {
             reservationAdapter.submitList(emptyList())
@@ -230,22 +242,45 @@ class DashboardActivity : AppCompatActivity() {
             }
     }
 
-
-
-
     override fun onResume() {
         super.onResume()
         loadUpcomingReservations()
+    }
+
+    // Recibe el resultado de AcceptInvitationActivity
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_JOIN && resultCode == RESULT_OK) {
+            // El user se ha unido a un nuevo hotel: recargamos todo
+            // Primero, re-leemos su lista de hotelIds desde Firestore
+            FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                db.collection("users").document(uid).get()
+                    .addOnSuccessListener { snap ->
+                        val updated = snap.toObject(User::class.java)
+                        if (updated != null) {
+                            hotelIds = updated.hotelRefs
+                            // recarga mapas y métricas
+                            loadHotelMap()
+                        }
+                    }
+            }
+        }
+    }
+
+    /**
+     * Lanza la pantalla de aceptar invitación como startActivityForResult.
+     */
+    fun launchAcceptInvitation(token: String) {
+        val intent = Intent(this, AcceptInvitationActivity::class.java)
+            .putExtra("INV_TOKEN", token)
+        startActivityForResult(intent, REQ_JOIN)
     }
 
     // Menú lateral
     private fun handleMenuSelection(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_dash -> {
-                startActivity(Intent(this, DashboardActivity::class.java).apply {
-                    putExtra("USER_ROLE", role)
-                    putStringArrayListExtra("USER_HOTELS", ArrayList(hotelIds))
-                })
+                // ya estamos aquí…
             }
             R.id.nav_hotel -> {
                 startActivity(Intent(this, HotelsActivity::class.java).apply {
@@ -258,7 +293,6 @@ class DashboardActivity : AppCompatActivity() {
                 startActivity(Intent(this, LoginActivity::class.java))
                 finish()
             }
-            else -> drawerLayout.closeDrawer(GravityCompat.START)
         }
         drawerLayout.closeDrawer(GravityCompat.START)
         return true
@@ -271,10 +305,12 @@ class DashboardActivity : AppCompatActivity() {
         }
         return super.onOptionsItemSelected(item)
     }
-    //Cerrar la app al pulsar el botón de ir hacia atras para evitar errores
+
     override fun onBackPressed() {
         super.onBackPressed()
-        // Esto cierra toda la aplicación
         finishAffinity()
+    }
+    fun reloadHotels() {
+        hotelController.loadHotelsForUser(currentUser)
     }
 }

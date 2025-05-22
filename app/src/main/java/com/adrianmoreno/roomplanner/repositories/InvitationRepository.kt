@@ -16,7 +16,7 @@ class InvitationRepository {
     /** Crea una invitación y devuelve el token o null */
     suspend fun createInvitation(
         email: String, name: String, hotelId: String,
-        ttlDays: Int = 7
+        ttlDays: Int = 1
     ): String? {
         return try {
             val token = UUID.randomUUID().toString().take(8)
@@ -53,19 +53,23 @@ class InvitationRepository {
             }
     }
 
-    /** Marca la invitación como usada */
-    fun markUsed(token: String) {
-        db.collection(COL).document(token)
-            .update("used", true)
-    }
 
-    suspend fun getInvitationSuspend(token: String): Invitation? {
-        return try {
-            val snap = db.collection(COL).document(token).get().await()
-            snap.toObject(Invitation::class.java)
+
+    suspend fun getInvitationSuspend(token: String): Invitation? =
+        try {
+            db.collection(COL).document(token)
+                .get().await()
+                .toObject(Invitation::class.java)
+        } catch(e: Exception) { null }
+
+    suspend fun markUsed(token: String): Boolean =
+        try {
+            db.collection(COL).document(token)
+                .update("used", true, "usedAt", FieldValue.serverTimestamp())
+                .await()
+            true
         } catch(e: Exception) {
-            Log.e("InvitationRepo", "Error getInvitationSuspend", e)
-            null
+            Log.e("InvitationRepo", "Error marking used", e)
+            false
         }
-    }
 }

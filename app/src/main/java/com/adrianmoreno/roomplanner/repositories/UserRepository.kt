@@ -4,6 +4,7 @@ import android.util.Log
 import com.adrianmoreno.roomplanner.models.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -91,5 +92,27 @@ class UserRepository(
                 Log.e("UserRepo", "Error obteniendo cleaners para hotel", it)
                 callback(emptyList())
             }
+    }
+
+    suspend fun removeCleanerFromHotel(uid: String, hotelId: String): Boolean = try {
+        db.collection("users").document(uid)
+            .update("hotelRefs", FieldValue.arrayRemove(hotelId))
+            .await()
+        true
+    } catch(e: Exception) {
+        Log.e("UserRepo", "Error quitando hotelRefs", e)
+        false
+    }
+
+    /** Añade un hotel al array hotelRefs del usuario actual */
+    suspend fun addHotelToCurrentUser(hotelId: String): Boolean = try {
+        val uid = auth.currentUser!!.uid
+        db.collection(COLLECTION).document(uid)
+            .update("hotelRefs", FieldValue.arrayUnion(hotelId))
+            .await()
+        true
+    } catch (e: Exception) {
+        Log.e("UserRepo", "Error añadiendo hotelRefs", e)
+        false
     }
 }

@@ -110,10 +110,20 @@
                 android:id="@+id/fabNewReservation"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
-                android:backgroundTint="@color/Green"
+                android:backgroundTint="@color/Cyan"
                 android:text="Añadir reserva"
                 android:paddingBottom="8dp"
                 />
+
+            <Button
+                android:id="@+id/buttonJoinHotel"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:backgroundTint="@color/Cyan"
+                android:text="¿Tienes una Invitación?"
+                android:paddingBottom="8dp"
+                />
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

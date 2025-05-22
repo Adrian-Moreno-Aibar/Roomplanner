@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.adrianmoreno.roomplanner.adapter.UserAdapter
 import com.adrianmoreno.roomplanner.controller.UserController
 
-
 class EmployeesFragment : Fragment() {
 
     private lateinit var userCtrl: UserController
@@ -58,7 +57,10 @@ class EmployeesFragment : Fragment() {
         rv.layoutManager = LinearLayoutManager(context)
         adapter = UserAdapter(
             onEdit   = { /* TODO: implementar edición */ },
-            onDelete = { uid -> userCtrl.deleteUser(uid,hotelId) }
+            onDelete = { uid ->
+                // En lugar de borrar el usuario, eliminamos solo el hotel de su array
+                userCtrl.removeCleanerFromHotel(uid, hotelId)
+            }
         )
         rv.adapter = adapter
 
@@ -79,3 +81,4 @@ class EmployeesFragment : Fragment() {
         return view
     }
 }
+

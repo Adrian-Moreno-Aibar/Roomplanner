@@ -14,8 +14,10 @@ import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.adrianmoreno.roomplanner.repositories.InvitationRepository
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class InviteCleanerDialogFragment(
     private val hotelId: String
@@ -57,56 +59,85 @@ class InviteCleanerDialogFragment(
             }
 
             lifecycleScope.launch {
-                val token = repo.createInvitation(email, name, hotelId)
-                if (token != null) {
+                val db = FirebaseFirestore.getInstance()
 
-                    // ────────────── NUEVO BLOQUE ──────────────
-                    // Leemos el nombre del hotel en lugar de usar el ID
-                    val hotelName = try {
-                        val snap = FirebaseFirestore
-                            .getInstance()
-                            .collection("hotels")
-                            .document(hotelId)
-                            .get()
-                            .await()
-                        snap.getString("name") ?: hotelId
-                    } catch (e: Exception) {
-                        hotelId  // fallback al ID si algo falla
+                // 1) Comprobar si ese email ya está asociado a este hotel
+                val alreadyInHotel = try {
+                    val snap = db.collection("users")
+                        .whereEqualTo("email", email)
+                        .whereArrayContains("hotelRefs", hotelId)
+                        .get()
+                        .await()
+                    snap.documents.isNotEmpty()
+                } catch (e: Exception) {
+                    false
+                }
+
+                if (alreadyInHotel) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            "Este usuario ya trabaja en este hotel",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                    // ──────────────────────────────────────────
+                    return@launch
+                }
 
-                    // Construimos asunto y cuerpo usando hotelName
-                    val subject = "Invitación a RoomPlanner"
-                    val body = """
-                    Hola $name,
-                    
-                    Has sido invitado como CLEANER en el hotel "$hotelName".
-                    Copia este código e introdúcelo en la app:
-                    
-                    Código: $token
-                """.trimIndent()
+                // 2) Crear invitación
+                val token = repo.createInvitation(email, name, hotelId)
+                if (token == null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            "Error creando invitación",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    return@launch
+                }
 
-                    // Intent genérico para compartir (email, mensajería, etc)
+                // 3) Leer el nombre del hotel
+                val hotelName = try {
+                    val snap = db.collection("hotels")
+                        .document(hotelId)
+                        .get()
+                        .await()
+                    snap.getString("name") ?: hotelId
+                } catch (e: Exception) {
+                    hotelId
+                }
+
+                // 4) Construir asunto y cuerpo del mensaje
+                val subject = "Invitación a RoomPlanner"
+                val body = """
+                Hola $name,
+                
+                Has sido invitado como CLEANER en el hotel "$hotelName".
+                Copia este código e introdúcelo en la app:
+                
+                Código: $token
+            """.trimIndent()
+
+                // 5) Lanzar chooser de envío
+                withContext(Dispatchers.Main) {
                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "message/rfc822"
                         putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
                         putExtra(Intent.EXTRA_SUBJECT, subject)
                         putExtra(Intent.EXTRA_TEXT, body)
                     }
-                    // Lanzamos siempre un chooser
                     startActivity(
                         Intent.createChooser(
                             shareIntent,
                             "Enviar invitación vía…"
                         )
                     )
-                    // Cerrar el diálogo
                     dialog.dismiss()
-                } else {
-                    Toast.makeText(context, "Error creando invitación", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
+
 
 }
