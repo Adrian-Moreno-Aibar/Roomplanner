@@ -13,5 +13,6 @@ data class Booking(
     // @Parcelize generalmente puede manejar Timestamp porque es Serializable
     val checkInDate: Timestamp = Timestamp.now(),
     val checkOutDate: Timestamp = Timestamp.now(),
-    val status: String     = "reservado"  // booked / checked-in / checked-out
+    val status: String     = "reservado",  // booked / checked-in / checked-out
+    val observations: String = ""
 ) : Parcelable // <--- AÑADE ": Parcelable"

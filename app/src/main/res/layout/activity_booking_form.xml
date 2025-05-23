@@ -85,6 +85,18 @@
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Observaciones -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Observaciones (opcional)"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etObservations"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Botón Guardar -->
         <Button
             android:id="@+id/btnSave"
@@ -94,14 +106,6 @@
             android:text="Guardar"
             android:layout_marginBottom="8dp"/>
 
-        <!-- Botón Borrar -->
-        <Button
-            android:id="@+id/btnDelete"
 
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Borrar"
-            android:enabled="false"
-            android:backgroundTint="@color/Red"/>
     </LinearLayout>
 </ScrollView>

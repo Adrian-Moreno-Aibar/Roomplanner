@@ -3,6 +3,7 @@ package com.adrianmoreno.roomplanner
 import android.app.DatePickerDialog
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -22,33 +23,35 @@ import java.util.*
 class BookingFormActivity : AppCompatActivity() {
 
     private lateinit var etGuestName: TextInputEditText
+    private lateinit var etObservations: TextInputEditText
     private lateinit var spinnerHotels: Spinner
     private lateinit var spinnerRooms: Spinner
     private lateinit var etCheckIn: TextInputEditText
     private lateinit var etCheckOut: TextInputEditText
     private lateinit var btnSave: Button
-    private lateinit var btnDelete: Button
 
-    private val db = FirebaseFirestore.getInstance()
+
+    private val db   = FirebaseFirestore.getInstance()
     private val repo = BookingRepository()
 
     private var existing: Booking? = null
     private lateinit var hotelIds: List<String>
     private var hotelsList: List<Hotel> = emptyList()
-    private var roomsList: List<Room> = emptyList()
+    private var roomsList:  List<Room>  = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_booking_form)
 
         // 1) findViewById
-        etGuestName   = findViewById(R.id.etGuestName)
-        spinnerHotels = findViewById(R.id.spinnerHotels)
-        spinnerRooms  = findViewById(R.id.spinnerRooms)
-        etCheckIn     = findViewById(R.id.etCheckIn)
-        etCheckOut    = findViewById(R.id.etCheckOut)
-        btnSave       = findViewById(R.id.btnSave)
-        btnDelete     = findViewById(R.id.btnDelete)
+        etGuestName    = findViewById(R.id.etGuestName)
+        etObservations = findViewById(R.id.etObservations)
+        spinnerHotels  = findViewById(R.id.spinnerHotels)
+        spinnerRooms   = findViewById(R.id.spinnerRooms)
+        etCheckIn      = findViewById(R.id.etCheckIn)
+        etCheckOut     = findViewById(R.id.etCheckOut)
+        btnSave        = findViewById(R.id.btnSave)
+
 
         // 2) Leer lista de hoteles del Intent
         hotelIds = intent.getStringArrayListExtra("USER_HOTELS")?.toList() ?: emptyList()
@@ -88,23 +91,31 @@ class BookingFormActivity : AppCompatActivity() {
 
         // 5) Al seleccionar un hotel, cargar sus habitaciones
         spinnerHotels.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>, view: android.view.View?, pos: Int, id: Long
-            ) {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
                 val selectedHotel = hotelsList[pos]
                 db.collection("rooms")
                     .whereEqualTo("hotelRef", selectedHotel.id)
                     .get()
                     .addOnSuccessListener { snaps ->
-                        roomsList = snaps.mapNotNull { it.toObject(Room::class.java) }
+                        roomsList = snaps
+                            .mapNotNull { it.toObject(Room::class.java) }
+                            // Extrae los dígitos de number y ordena numéricamente:
+                            .sortedBy { room ->
+                                // quitamos todo lo que no sea dígito y parseamos
+                                room.number
+                                    .filter { it.isDigit() }
+                                    .toIntOrNull()
+                                    ?: Int.MAX_VALUE
+                            }
+
                         spinnerRooms.adapter = ArrayAdapter(
                             this@BookingFormActivity,
                             android.R.layout.simple_spinner_dropdown_item,
                             roomsList.map { it.number }
                         )
                         existing?.let { b ->
-                            val rIdx = roomsList.indexOfFirst { it.id == b.roomRef }
-                            if (rIdx >= 0) spinnerRooms.setSelection(rIdx)
+                            val idx = roomsList.indexOfFirst { it.id == b.roomRef }
+                            if (idx >= 0) spinnerRooms.setSelection(idx)
                         }
                     }
                     .addOnFailureListener { e ->
@@ -119,14 +130,15 @@ class BookingFormActivity : AppCompatActivity() {
         }
 
         // 6) DatePickers
-        etCheckIn.setOnClickListener { showDate { d -> etCheckIn.setText(d) } }
+        etCheckIn .setOnClickListener { showDate { d -> etCheckIn .setText(d) } }
         etCheckOut.setOnClickListener { showDate { d -> etCheckOut.setText(d) } }
 
         // 7) Guardar o editar
         btnSave.setOnClickListener {
-            val guest = etGuestName.text.toString().trim()
-            val inStr = etCheckIn.text.toString().trim()
-            val outStr= etCheckOut.text.toString().trim()
+            val guest    = etGuestName.text.toString().trim()
+            val obs      = etObservations.text.toString().trim()
+            val inStr    = etCheckIn.text.toString().trim()
+            val outStr   = etCheckOut.text.toString().trim()
             if (guest.isEmpty() || inStr.isEmpty() || outStr.isEmpty()) {
                 Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -143,8 +155,10 @@ class BookingFormActivity : AppCompatActivity() {
                 Toast.makeText(this, "Selecciona una habitación", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
             val booking = (existing ?: Booking()).copy(
                 guestName    = guest,
+                observations = obs,
                 checkInDate  = checkIn,
                 checkOutDate = checkOut,
                 hotelRef     = hotel.id,
@@ -180,33 +194,15 @@ class BookingFormActivity : AppCompatActivity() {
             }
         }
 
-        // 8) Borrar (solo si existe reserva)
-        btnDelete.isEnabled = existing != null
-        btnDelete.setOnClickListener {
-            existing?.let { b ->
-                AlertDialog.Builder(this)
-                    .setTitle("Borrar reserva")
-                    .setMessage("¿Eliminar reserva de ${b.guestName}?")
-                    .setPositiveButton("Borrar") { _, _ ->
-                        lifecycleScope.launch {
-                            if (repo.delete(b.id)) {
-                                Toast.makeText(this@BookingFormActivity, "Reserva borrada", Toast.LENGTH_SHORT).show()
-                                finish()
-                            } else {
-                                Toast.makeText(this@BookingFormActivity, "Error al borrar", Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    }
-                    .setNegativeButton("Cancelar", null)
-                    .show()
-            }
-        }
+
+
     }
 
     private fun fillForm(b: Booking) {
-        etGuestName.setText(b.guestName)
-        etCheckIn.setText(DateParser.format(b.checkInDate.toDate()))
-        etCheckOut.setText(DateParser.format(b.checkOutDate.toDate()))
+        etGuestName   .setText(b.guestName)
+        etObservations.setText(b.observations)
+        etCheckIn     .setText(DateParser.format(b.checkInDate.toDate()))
+        etCheckOut    .setText(DateParser.format(b.checkOutDate.toDate()))
     }
 
     private fun showDate(onDate: (String) -> Unit) {

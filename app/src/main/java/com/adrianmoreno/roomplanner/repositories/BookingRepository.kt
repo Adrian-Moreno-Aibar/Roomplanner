@@ -11,12 +11,35 @@ import kotlinx.coroutines.tasks.await
 
 class BookingRepository {
     private val db = FirebaseFirestore.getInstance()
-    private val COL = "bookings"
+    private val BOOKINGS = "bookings"
+    private val ROOMS    = "rooms"
+
+    /** Marca una habitación como ocupada */
+    private suspend fun markRoomOccupied(roomId: String) {
+        db.collection(ROOMS).document(roomId)
+            .update("status", "OCUPADA")
+            .await()
+    }
+
+    /** Marca una habitación como libre (cancelación), sin tocar isClean */
+    private suspend fun markRoomFree(roomId: String) {
+        db.collection(ROOMS).document(roomId)
+            .update("status", "LIBRE")
+            .await()
+    }
+
+    /** Marca una habitación libre y la ensucia (checkout real) */
+    suspend fun markRoomFreeAndDirty(roomId: String) {
+        db.collection(ROOMS).document(roomId)
+            .update(mapOf(
+                "status"  to "LIBRE",
+                "isClean" to false
+            ))
+            .await()
+    }
 
     /**
-     * Recupera todas las reservas del mismo hotel y habitación,
-     * filtra en servidor por checkInDate < checkOut, y si falta índice
-     * hace fallback trayendo todas y filtrando ambos extremos en cliente.
+     * Recupera reservas que se solapen con el rango dado
      */
     private suspend fun getOverlapping(
         hotelId: String,
@@ -24,35 +47,28 @@ class BookingRepository {
         checkIn: Timestamp,
         checkOut: Timestamp
     ): List<Booking> {
+        // ... tu implementación actual (idéntica) ...
         return try {
-            // Intento consulta con una desigualdad (puede requerir índice compuesto)
-            val snaps = db.collection(COL)
+            val snaps = db.collection(BOOKINGS)
                 .whereEqualTo("hotelRef", hotelId)
                 .whereEqualTo("roomRef", roomId)
                 .whereLessThan("checkInDate", checkOut)
                 .get()
                 .await()
-
             snaps.mapNotNull { it.toObject(Booking::class.java) }
-                .filter { existing ->
-                    // segunda desigualdad en cliente
-                    existing.checkOutDate.toDate().after(checkIn.toDate())
-                }
-
+                .filter { it.checkOutDate.toDate().after(checkIn.toDate()) }
         } catch (e: FirebaseFirestoreException) {
-            // Si falla por falta de índice, fallback total en cliente
             if (e.code == Code.FAILED_PRECONDITION) {
                 Log.w("BookingRepo", "Índice faltante, fallback cliente")
-                val snaps = db.collection(COL)
+                val snaps = db.collection(BOOKINGS)
                     .whereEqualTo("hotelRef", hotelId)
                     .whereEqualTo("roomRef", roomId)
                     .get()
                     .await()
-
                 snaps.mapNotNull { it.toObject(Booking::class.java) }
-                    .filter { existing ->
-                        existing.checkInDate.toDate().before(checkOut.toDate()) &&
-                                existing.checkOutDate.toDate().after(checkIn.toDate())
+                    .filter {
+                        it.checkInDate.toDate().before(checkOut.toDate()) &&
+                                it.checkOutDate.toDate().after(checkIn.toDate())
                     }
             } else {
                 Log.e("BookingRepo", "Error comprobando solapamientos", e)
@@ -65,29 +81,20 @@ class BookingRepository {
     }
 
     /**
-     * Crea la reserva solo si no hay solapamientos.
-     * Además añade el rango en `reservedRanges` de la Room.
-     * Devuelve el ID nuevo, o null si hay conflicto o error.
+     * Crea la reserva si está libre, y marca la habitación ocupada.
      */
     suspend fun createIfAvailable(b: Booking): String? {
-        // 1) validar solapamientos
-        val conflicts = getOverlapping(
-            hotelId  = b.hotelRef,
-            roomId   = b.roomRef,
-            checkIn  = b.checkInDate,
-            checkOut = b.checkOutDate
-        )
+        val conflicts = getOverlapping(b.hotelRef, b.roomRef, b.checkInDate, b.checkOutDate)
         if (conflicts.isNotEmpty()) {
             Log.w("BookingRepo", "Conflicto de fechas: $conflicts")
             return null
         }
-        // 2) crear booking
         return try {
-            val ref    = db.collection(COL).document()
+            val ref    = db.collection(BOOKINGS).document()
             val withId = b.copy(id = ref.id)
             ref.set(withId).await()
-            // 3) actualizar Room para anotar el rango reservado
-            db.collection("rooms").document(b.roomRef)
+            // anotar el rango reservado
+            db.collection(ROOMS).document(b.roomRef)
                 .update(
                     "reservedRanges",
                     FieldValue.arrayUnion(
@@ -95,6 +102,8 @@ class BookingRepository {
                     )
                 )
                 .await()
+            // marcar ocupada
+            markRoomOccupied(b.roomRef)
             ref.id
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error creando reserva", e)
@@ -103,25 +112,28 @@ class BookingRepository {
     }
 
     /**
-     * Actualiza la reserva solo si no hay conflictos (excluyendo ella misma).
-     * Devuelve true si se actualizó, false si hay conflicto o error.
+     * Actualiza la reserva si sigue libre, mueve la ocupación si cambió de habitación.
      */
     suspend fun updateIfAvailable(b: Booking): Boolean {
-        // 1) validar solapamientos excluyendo la propia reserva
-        val conflicts = getOverlapping(
-            hotelId  = b.hotelRef,
-            roomId   = b.roomRef,
-            checkIn  = b.checkInDate,
-            checkOut = b.checkOutDate
-        ).filter { it.id != b.id }
+        // recupera la versión actual para ver si cambió de room
+        val snap    = db.collection(BOOKINGS).document(b.id).get().await()
+        val old     = snap.toObject(Booking::class.java)
+        val oldRoom = old?.roomRef
 
+        val conflicts = getOverlapping(b.hotelRef, b.roomRef, b.checkInDate, b.checkOutDate)
+            .filter { it.id != b.id }
         if (conflicts.isNotEmpty()) {
             Log.w("BookingRepo", "Edición cancelada, conflicto: $conflicts")
             return false
         }
-        // 2) aplicar update
         return try {
-            db.collection(COL).document(b.id).set(b).await()
+            db.collection(BOOKINGS).document(b.id).set(b).await()
+            // si cambió de habitación, liberar la antigua sin ensuciar
+            if (oldRoom != null && oldRoom != b.roomRef) {
+                markRoomFree(oldRoom)
+            }
+            // ocupar la nueva
+            markRoomOccupied(b.roomRef)
             true
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error actualizando reserva", e)
@@ -130,20 +142,49 @@ class BookingRepository {
     }
 
     /**
-     * Borra una reserva y remueve el rango de `reservedRanges` de la Room.
+     * “Cancelación” de reserva desde la UI:
+     * - elimina el documento
+     * - quita el rango de reservedRanges
+     * - libera la habitación **sin** ensuciarla
+     */
+    suspend fun cancelReservation(id: String): Boolean {
+        return try {
+            val snap = db.collection(BOOKINGS).document(id).get().await()
+            val b    = snap.toObject(Booking::class.java)
+                ?: return false
+
+            // 1) borrar reserva
+            db.collection(BOOKINGS).document(id).delete().await()
+
+            // 2) eliminar rango reservado
+            db.collection(ROOMS).document(b.roomRef)
+                .update(
+                    "reservedRanges",
+                    FieldValue.arrayRemove(
+                        mapOf("from" to b.checkInDate, "to" to b.checkOutDate)
+                    )
+                )
+                .await()
+
+            // 3) liberar sin ensuciar
+            markRoomFree(b.roomRef)
+            true
+        } catch (e: Exception) {
+            Log.e("BookingRepo", "Error cancelando reserva", e)
+            false
+        }
+    }
+
+    /**
+     * Borrado “puro” de reserva (p. ej. mantenimiento), quita también el rango y deja estado
+     * de room a libre (pero sin tocar isClean ni reservedRanges adicionales).
      */
     suspend fun delete(id: String): Boolean {
         return try {
-            val snap = db.collection(COL).document(id).get().await()
-            val b    = snap.toObject(Booking::class.java)
-            if (b == null) {
-                Log.w("BookingRepo", "Reserva no encontrada al borrar: $id")
-                return false
-            }
-            // 1) borrar reserva
-            db.collection(COL).document(id).delete().await()
-            // 2) eliminar rango reservado
-            db.collection("rooms").document(b.roomRef)
+            val snap = db.collection(BOOKINGS).document(id).get().await()
+            val b    = snap.toObject(Booking::class.java) ?: return false
+            db.collection(BOOKINGS).document(id).delete().await()
+            db.collection(ROOMS).document(b.roomRef)
                 .update(
                     "reservedRanges",
                     FieldValue.arrayRemove(
@@ -159,7 +200,7 @@ class BookingRepository {
     }
 
     /**
-     * Lee reservas de un hotel entre dos fechas (para dashboard/listado).
+     * Lee próximas reservas (sin cambios).
      */
     fun getUpcoming(
         hotelId: String,
@@ -167,7 +208,7 @@ class BookingRepository {
         to: Timestamp,
         callback: (List<Booking>) -> Unit
     ) {
-        db.collection(COL)
+        db.collection(BOOKINGS)
             .whereEqualTo("hotelRef", hotelId)
             .whereGreaterThanOrEqualTo("checkInDate", from)
             .whereLessThanOrEqualTo("checkInDate", to)

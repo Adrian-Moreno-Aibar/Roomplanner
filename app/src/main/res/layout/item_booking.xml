@@ -57,6 +57,18 @@
             android:textSize="14sp"
             android:textColor="@color/black"/>
 
+        <!-- Observaciones -->
+        <TextView
+            android:id="@+id/tvObservations"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tvDates"
+            android:layout_marginTop="4dp"
+            android:text="Observaciones: Cuna solicitada"
+            android:textSize="13sp"
+            android:textColor="@color/Gray"
+            android:visibility="gone"/>
+
         <!-- Menú contextual -->
         <ImageView
             android:id="@+id/btnBookingMenu"

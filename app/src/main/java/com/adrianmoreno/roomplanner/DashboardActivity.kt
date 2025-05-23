@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.adrianmoreno.roomplanner.adapter.BookingAdapter
@@ -18,12 +19,15 @@ import com.adrianmoreno.roomplanner.controller.HotelController
 import com.adrianmoreno.roomplanner.models.Booking
 import com.adrianmoreno.roomplanner.models.Room
 import com.adrianmoreno.roomplanner.models.User
+import com.adrianmoreno.roomplanner.repositories.BookingRepository
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class DashboardActivity : AppCompatActivity() {
 
@@ -34,6 +38,7 @@ class DashboardActivity : AppCompatActivity() {
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navigationView: NavigationView
     private lateinit var hotelController: HotelController
+    private val repo = BookingRepository()
 
     private val db = FirebaseFirestore.getInstance()
 
@@ -353,6 +358,23 @@ class DashboardActivity : AppCompatActivity() {
                 Toast.makeText(this,
                     "No se pudieron recargar hoteles: ${it.localizedMessage}",
                     Toast.LENGTH_LONG).show()
+            }
+    }
+
+    fun sweepCheckout() {
+        val now = Timestamp.now()
+        db.collection("bookings")
+            .whereLessThanOrEqualTo("checkOutDate", now)
+            .get()
+            .addOnSuccessListener { snaps ->
+                snaps.forEach { doc ->
+                    val b = doc.toObject(Booking::class.java)
+                    // elimina la reserva (o márcala usada) y ensucia la habitación
+                    lifecycleScope.launch {
+                        repo.markRoomFreeAndDirty(b.roomRef)
+                        doc.reference.delete().await()
+                    }
+                }
             }
     }
 }
