@@ -25,16 +25,22 @@ class DialogoCrearCuenta : DialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val view = inflater.inflate(R.layout.fragment_dialog_new_account, container, false)
+        val view = inflater.inflate(R.layout.activity_dialog_new_account, container, false)
 
-        val emailEt   = view.findViewById<EditText>(R.id.emailEditText)
-        val passEt    = view.findViewById<EditText>(R.id.passwordEditText)
-        val btnSignUp = view.findViewById<Button>(R.id.signupButton)
+        val nameEt     = view.findViewById<EditText>(R.id.nameEditText)
+        val emailEt    = view.findViewById<EditText>(R.id.emailEditText)
+        val passEt     = view.findViewById<EditText>(R.id.passwordEditText)
+        val btnSignUp  = view.findViewById<Button>(R.id.signupButton)
 
         btnSignUp.setOnClickListener {
+            val name  = nameEt.text.toString().trim()
             val email = emailEt.text.toString().trim()
             val pass  = passEt.text.toString()
 
+            if (name.isEmpty()) {
+                Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
                 Toast.makeText(requireContext(), "Correo inválido", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -49,9 +55,8 @@ class DialogoCrearCuenta : DialogFragment() {
             auth.createUserWithEmailAndPassword(email, pass)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        // Enviar verificación y guardar perfil
                         auth.currentUser?.sendEmailVerification()
-                        saveUserProfile()
+                        saveUserProfile(name)
                     } else {
                         val ex = task.exception
                         val msg = when (ex) {
@@ -70,10 +75,16 @@ class DialogoCrearCuenta : DialogFragment() {
         return view
     }
 
-    private fun saveUserProfile() {
+    private fun saveUserProfile(name: String) {
         val uid   = auth.currentUser!!.uid
         val email = auth.currentUser!!.email ?: ""
-        val user  = User(uid = uid, email = email, role = "ADMIN", hotelRefs = emptyList())
+        val user  = User(
+            uid       = uid,
+            name      = name,           // guardamos el nombre
+            email     = email,
+            role      = "ADMIN",
+            hotelRefs = emptyList()
+        )
 
         db.collection("users").document(uid)
             .set(user)
@@ -90,3 +101,4 @@ class DialogoCrearCuenta : DialogFragment() {
             }
     }
 }
+

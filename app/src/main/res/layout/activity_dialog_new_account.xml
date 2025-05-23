@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -13,6 +12,17 @@
         android:textStyle="bold"
         android:layout_centerHorizontal="true"/>
 
+    <!-- NUEVO: campo Nombre -->
+    <EditText
+        android:id="@+id/nameEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nombre completo"
+        android:inputType="textPersonName"
+        android:padding="8dp"
+        android:layout_below="@id/titleTextView"
+        android:layout_marginTop="16dp"/>
+
     <EditText
         android:id="@+id/emailEditText"
         android:layout_width="match_parent"
@@ -20,8 +30,8 @@
         android:hint="Correo electrónico"
         android:inputType="textEmailAddress"
         android:padding="8dp"
-        android:layout_below="@id/titleTextView"
-        android:layout_marginTop="16dp"/>
+        android:layout_below="@id/nameEditText"
+        android:layout_marginTop="8dp"/>
 
     <EditText
         android:id="@+id/passwordEditText"

@@ -40,6 +40,7 @@ class DashboardActivity : AppCompatActivity() {
     private lateinit var currentUser: User
     private lateinit var role: String
     private lateinit var hotelIds: List<String>
+    private lateinit var tvWelcome: TextView
 
     private lateinit var hotelMap: Map<String, String>
     private lateinit var roomMap: Map<String, String>
@@ -49,8 +50,29 @@ class DashboardActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
+        tvWelcome = findViewById(R.id.tvWelcome)
+
         // 0) Init ViewModel
         hotelController = ViewModelProvider(this).get(HotelController::class.java)
+
+        // 0.5) Cargamos el perfil completo del usuario para leer su nombre
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .get()
+                .addOnSuccessListener { snap ->
+                    val user = snap.toObject(User::class.java)
+                    user?.let {
+                        tvWelcome.text = "¡Hola, ${it.name}!!"
+                    }
+                }
+                .addOnFailureListener {
+                    tvWelcome.text = "Bienvenid@!!"
+                }
+        }
+
 
         // 1) Recuperar rol y hoteles del Intent
         role     = intent.getStringExtra("USER_ROLE") ?: ""
@@ -217,7 +239,7 @@ class DashboardActivity : AppCompatActivity() {
         if (!::reservationAdapter.isInitialized) return
 
         val today = Timestamp.now()
-        val checkInDate = Timestamp(today.seconds - 2 * 24 * 3600, 0)
+        val checkInDate = Timestamp(today.seconds - 7 * 24 * 3600, 0)
         val nextMonth   = Timestamp(today.seconds + 30 * 24 * 3600, 0)
 
         if (hotelIds.isEmpty()) {
