@@ -12,6 +12,7 @@ import com.adrianmoreno.roomplanner.R
 import com.adrianmoreno.roomplanner.models.User
 
 class UserAdapter(
+    private val canManage: Boolean,
     private val onEdit:   (User)   -> Unit,
     private val onDelete: (String) -> Unit
 ) : RecyclerView.Adapter<UserAdapter.VH>() {
@@ -41,12 +42,12 @@ class UserAdapter(
         private val nameTv   = view.findViewById<TextView>(R.id.tvUserName)
         private val emailTv  = view.findViewById<TextView>(R.id.tvUserEmail)
         private val roleTv   = view.findViewById<TextView>(R.id.tvUserRole)
-        private val menuIcon = view.findViewById<ImageView>(R.id.btnUserMenu)
+        private val btnMenu = view.findViewById<ImageView>(R.id.btnUserMenu)
 
         private lateinit var current: User
 
         init {
-            menuIcon.setOnClickListener { showMenu() }
+            btnMenu.setOnClickListener { showMenu() }
         }
 
         fun bind(u: User) {
@@ -54,10 +55,12 @@ class UserAdapter(
             nameTv.text  = u.name
             emailTv.text = u.email
             roleTv.text  = u.role
+            // 2) Mostramos/ocultamos el menú según canManage
+            btnMenu.visibility = if (canManage) View.VISIBLE else View.GONE
         }
 
         private fun showMenu() {
-            PopupMenu(itemView.context, menuIcon).apply {
+            PopupMenu(itemView.context, btnMenu).apply {
                 menuInflater.inflate(R.menu.menu_item_user, menu)
                 setOnMenuItemClickListener { mi ->
                     when (mi.itemId) {

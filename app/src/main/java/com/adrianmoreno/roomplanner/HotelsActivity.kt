@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -37,7 +38,7 @@ class HotelsActivity : AppCompatActivity() {
     private lateinit var adapter: HotelAdapter
 
     // Rol del usuario actual ("SUPERADMIN", "ADMIN" o "CLEANER")
-    private lateinit var role: String
+   lateinit var role: String
 
     // Lista de IDs de hoteles que el usuario administra o limpia
     private lateinit var hotelIds: MutableList<String>
@@ -51,6 +52,7 @@ class HotelsActivity : AppCompatActivity() {
 
         // 1) Recuperar rol y lista de hoteles del Intent
         role     = intent.getStringExtra("USER_ROLE") ?: ""
+        val isAdmin = role != "CLEANER"
         hotelIds = intent.getStringArrayListExtra("USER_HOTELS")
             ?.toMutableList() ?: mutableListOf()
         currentUser = User(
@@ -86,10 +88,12 @@ class HotelsActivity : AppCompatActivity() {
                 startActivity(Intent(this, HotelDetailActivity::class.java).apply {
                     putExtra(HotelDetailActivity.EXTRA_HOTEL_ID,   hotel.id)
                     putExtra(HotelDetailActivity.EXTRA_HOTEL_NAME, hotel.name)
+                    putExtra(HotelDetailActivity.EXTRA_USER_ROLE,  role)
                 })
             },
             onEdit   = { hotel -> showEditHotelDialog(hotel) },
-            onDelete = { hotelId -> confirmDeleteHotel(hotelId) }
+            onDelete = { hotelId -> confirmDeleteHotel(hotelId) },
+            canManage  = isAdmin
         )
         recycler.adapter = adapter
 
@@ -171,6 +175,18 @@ class HotelsActivity : AppCompatActivity() {
 
         // Habilitar la acción de abrir el menú desde el icono de la barra de acción
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+
+        // sólo Admin o Super pueden crear reservas
+        if (role == "CLEANER") {
+            fabAdd.visibility = View.GONE
+        }
+
+        //Esconder Botón de crear a los cleaners
+        // sólo Admin o Super pueden crear reservas
+        if (role == "CLEANER") {
+            fabAdd.visibility = View.GONE
+        }
     }
 
     /** Refresca la lista de hoteles según el rol y datos de usuario */

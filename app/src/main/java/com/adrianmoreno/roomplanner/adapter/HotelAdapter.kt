@@ -14,7 +14,8 @@ import com.bumptech.glide.Glide
 class HotelAdapter(
     private val onClick: (Hotel) -> Unit,
     private val onEdit:  (Hotel) -> Unit,
-    private val onDelete: (String) -> Unit
+    private val onDelete: (String) -> Unit,
+    private val canManage: Boolean
 ) : RecyclerView.Adapter<HotelAdapter.VH>() {
 
     private val items = mutableListOf<Hotel>()
@@ -41,14 +42,14 @@ class HotelAdapter(
         private val imageView    = view.findViewById<ImageView>(R.id.hotelImageView)
         private val nameTv       = view.findViewById<TextView>(R.id.hotelNameTextView)
         private val addressTv    = view.findViewById<TextView>(R.id.hotelAddressTextView)
-        private val menuIcon     = view.findViewById<ImageView>(R.id.btnHotelMenu)
+        private val btnMenu     = view.findViewById<ImageView>(R.id.btnHotelMenu)
         private var currentHotel: Hotel? = null
 
         init {
             itemView.setOnClickListener {
                 currentHotel?.let(onClick)
             }
-            menuIcon.setOnClickListener {
+            btnMenu.setOnClickListener {
                 showPopupMenu()
             }
         }
@@ -57,6 +58,7 @@ class HotelAdapter(
             currentHotel = hotel
             nameTv.text = hotel.name
             addressTv.text = hotel.address
+            btnMenu.visibility = if (canManage) View.VISIBLE else View.GONE
 
             if (hotel.photoUrl.isNotBlank()) {
                 Glide.with(imageView.context)
@@ -72,7 +74,7 @@ class HotelAdapter(
 
         private fun showPopupMenu() {
             currentHotel?.let { hotel ->
-                PopupMenu(itemView.context, menuIcon).apply {
+                PopupMenu(itemView.context, btnMenu).apply {
                     menuInflater.inflate(R.menu.menu_item_hotel, menu)
                     setOnMenuItemClickListener { menuItem ->
                         when (menuItem.itemId) {

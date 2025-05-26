@@ -1,3 +1,4 @@
+/*
 package com.adrianmoreno.roomplanner
 
 import android.os.Bundle
@@ -114,3 +115,4 @@ class RoomsActivity : AppCompatActivity() {
             .show()
     }
 }
+*/

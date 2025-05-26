@@ -18,7 +18,7 @@ class UserController(
 
     /** Carga sólo los CLEANER asignados al hotel */
     fun loadCleanersForHotel(hotelId: String) {
-        repo.getCleanersForHotel(hotelId) { list ->
+        repo.getUsersForHotel(hotelId) { list ->
             _cleaners.postValue(list)
         }
     }

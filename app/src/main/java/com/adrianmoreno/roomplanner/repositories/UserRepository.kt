@@ -77,11 +77,11 @@ class UserRepository(
     }
 
     /**
-     * Devuelve una lista de usuarios con rol CLEANER asignados al hotel especificado.
+     * Devuelve la lista de usuarios asignados al hotel especificado.
      */
-    fun getCleanersForHotel(hotelId: String, callback: (List<User>) -> Unit) {
+    fun getUsersForHotel(hotelId: String, callback: (List<User>) -> Unit) {
         db.collection(COLLECTION)
-            .whereEqualTo("role", "CLEANER")
+            .whereIn("role", listOf("CLEANER","ADMIN"))
             .whereArrayContains("hotelRefs", hotelId)
             .get()
             .addOnSuccessListener { snaps ->
@@ -89,7 +89,7 @@ class UserRepository(
                 callback(users)
             }
             .addOnFailureListener {
-                Log.e("UserRepo", "Error obteniendo cleaners para hotel", it)
+                Log.e("UserRepo", "Error obteniendo los usuarios del hotel", it)
                 callback(emptyList())
             }
     }

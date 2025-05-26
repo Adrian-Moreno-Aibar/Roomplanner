@@ -10,6 +10,7 @@ class HotelDetailActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_HOTEL_ID = "HOTEL_ID"
         const val EXTRA_HOTEL_NAME = "HOTEL_NAME"
+        const val EXTRA_USER_ROLE = "USER_ROLE"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,6 +22,7 @@ class HotelDetailActivity : AppCompatActivity() {
             ?: throw IllegalArgumentException("Hotel ID missing")
         val hotelName = intent.getStringExtra(EXTRA_HOTEL_NAME)
             ?: ""
+        val role = intent.getStringExtra(EXTRA_USER_ROLE)  ?: "CLEANER"
 
         // Si tienes un Toolbar, podrías poner:
         supportActionBar?.title = hotelName
@@ -29,7 +31,7 @@ class HotelDetailActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(
                 R.id.fragment_container,
-                RoomsFragment.newInstance(hotelId,hotelName)
+                RoomsFragment.newInstance(hotelId,hotelName, role)
             )
             .commit()
 
@@ -38,9 +40,9 @@ class HotelDetailActivity : AppCompatActivity() {
             .setOnNavigationItemSelectedListener { item ->
                 val fragment = when (item.itemId) {
                     R.id.nav_rooms ->
-                        RoomsFragment.newInstance(hotelId,hotelName)
+                        RoomsFragment.newInstance(hotelId,hotelName,role)
                     R.id.nav_employees ->
-                        EmployeesFragment.newInstance(hotelId,hotelName)
+                        EmployeesFragment.newInstance(hotelId,hotelName,role)
                     else -> null
                 }
                 fragment?.let {

@@ -41,19 +41,23 @@ class BookingRepository {
     }
 
 
-    suspend fun sweepCheckout() {
+    suspend fun sweepCheckout(hotelIds: List<String>) {
         val now = Timestamp.now()
-        val snaps = db.collection(BOOKINGS)
-            .whereLessThanOrEqualTo("checkOutDate", now)
-            .get()
-            .await()
+        hotelIds.forEach { hotelId ->
+            // 1) Sólo miramos reservas de este hotel que ya hayan hecho checkout
+            val snaps = db.collection(BOOKINGS)
+                .whereEqualTo("hotelRef", hotelId)
+                .whereLessThanOrEqualTo("checkOutDate", now)
+                .get()
+                .await()
 
-        snaps.documents.forEach { doc ->
-            val b = doc.toObject(Booking::class.java) ?: return@forEach
-            // 1) marcar habitación sucia
-           markRoomFreeAndDirty(b.roomRef)
-            // 2) eliminar reserva
-            //doc.reference.delete().await()
+            snaps.documents.forEach { doc ->
+                val b = doc.toObject(Booking::class.java) ?: return@forEach
+                // 2) marcamos la habitación libre + sucia
+                markRoomFreeAndDirty(b.roomRef)
+                // 3) borramos la reserva
+                doc.reference.delete().await()
+            }
         }
     }
 

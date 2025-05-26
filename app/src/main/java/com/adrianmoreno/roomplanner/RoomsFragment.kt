@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.adrianmoreno.roomplanner.adapter.RoomAdapter
 import com.adrianmoreno.roomplanner.controller.RoomController
 import com.adrianmoreno.roomplanner.models.Room
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
@@ -29,22 +30,28 @@ class RoomsFragment : Fragment() {
     companion object {
         private const val ARG_HOTEL_ID = "HOTEL_ID"
         private const val ARG_HOTEL_NAME = "ARG_HOTEL_NAME"
+        private const val ARG_USER_ROLE  = "USER_ROLE"
 
-        fun newInstance(hotelId: String, hotelName: String) = RoomsFragment().apply {
+        fun newInstance(hotelId: String, hotelName: String, role: String) = RoomsFragment().apply {
             arguments = Bundle().apply {
                 putString(ARG_HOTEL_ID, hotelId)
                 putString(ARG_HOTEL_NAME, hotelName)
+                putString(ARG_USER_ROLE,  role)
             }
         }
     }
+    private lateinit var role: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         hotelId = arguments?.getString(ARG_HOTEL_ID)
             ?: throw IllegalArgumentException("RoomsFragment requires a hotelId")
+        role    = arguments?.getString(ARG_USER_ROLE)!!
         val hotelName = arguments?.getString(ARG_HOTEL_NAME) ?: ""
         // Si quieres, pon el título del Toolbar aquí:
         activity?.title = hotelName
+
+
     }
 
     override fun onCreateView(
@@ -56,7 +63,12 @@ class RoomsFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_rooms, container, false)
 
         val recycler = view.findViewById<RecyclerView>(R.id.roomsRecyclerView)
-        val fabAdd   = view.findViewById<Button>(R.id.fabAddRoom)
+        val fabAdd = view.findViewById<Button>(R.id.fabAddRoom)
+        // ahora `role` está disponible aquí
+        if (role == "CLEANER") {
+            fabAdd.visibility = View.GONE
+        }
+
 
         recycler.layoutManager = GridLayoutManager(context, 2)
         adapter = RoomAdapter(
@@ -69,6 +81,7 @@ class RoomsFragment : Fragment() {
                     }
             },
             onEdit = { room -> showEditDialog(room) },
+            canManage     = role != "CLEANER",
             onDelete = { roomId ->
                 lifecycleScope.launch { controller.deleteRoom(roomId, hotelId) }
             }

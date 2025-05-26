@@ -8,12 +8,14 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
+import com.adrianmoreno.roomplanner.HotelsActivity
 import com.adrianmoreno.roomplanner.R
 import com.adrianmoreno.roomplanner.models.Room
 
 class RoomAdapter(
     private val onToggleClean: (roomId: String, newClean: Boolean) -> Unit,
     private val onEdit:        (Room) -> Unit,
+    private val canManage:     Boolean,
     private val onDelete:      (String) -> Unit
 ) : RecyclerView.Adapter<RoomAdapter.VH>() {
 
@@ -33,6 +35,7 @@ class RoomAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         holder.bind(items[position])
+
     }
 
     override fun getItemCount() = items.size
@@ -61,6 +64,16 @@ class RoomAdapter(
             statusTv.text      = r.status
             cleanStatusTv.text = if (r.isClean) "Limpia" else "Sucia"
             btnToggleClean.text = if (r.isClean) "Marcar sucia" else "Marcar limpia"
+            // 1) Saquemos el rol de la Activity (DashboardActivity tiene un campo public 'role')
+            val role = (itemView.context as? HotelsActivity)?.role ?: "CLEANER"
+            // 2) Mostramos/ocultamos el menú según canManage
+            btnMenu.visibility = if (canManage) View.VISIBLE else View.GONE
+
+            // 3) Listener del toggle
+            btnToggleClean.setOnClickListener {
+                onToggleClean(r.id, !r.isClean)
+            }
+
         }
 
         private fun showPopupMenu() {

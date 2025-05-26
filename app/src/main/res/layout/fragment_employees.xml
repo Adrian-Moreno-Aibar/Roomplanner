@@ -23,6 +23,8 @@
         android:id="@+id/rvEmployees"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:layout_marginBottom="60dp"
+        android:clipToPadding="false"
         android:padding="8dp"
         app:layout_constraintTop_toBottomOf="@id/employeeTitle"
         app:layout_constraintBottom_toTopOf="@+id/fabAddEmployee"

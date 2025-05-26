@@ -15,6 +15,7 @@ import java.util.*
 class BookingAdapter(
     private val hotelMap: Map<String, String>,
     private val roomMap:  Map<String, String>,
+    private val canManage: Boolean,
     private val onEdit:   (Booking) -> Unit,
     private val onDelete: (String)  -> Unit
 ) : RecyclerView.Adapter<BookingAdapter.VH>() {
@@ -47,11 +48,11 @@ class BookingAdapter(
         private val roomTv         = view.findViewById<TextView>(R.id.tvRoomNumber)
         private val dateTv         = view.findViewById<TextView>(R.id.tvDates)
         private val observationsTv = view.findViewById<TextView>(R.id.tvObservations)
-        private val menuIv         = view.findViewById<ImageView>(R.id.btnBookingMenu)
+        private val btnMenu         = view.findViewById<ImageView>(R.id.btnBookingMenu)
         private var current: Booking? = null
 
         init {
-            menuIv.setOnClickListener { showPopupMenu() }
+            btnMenu.setOnClickListener { showPopupMenu() }
         }
 
         /** Vuelca los datos en los views */
@@ -62,6 +63,8 @@ class BookingAdapter(
             roomTv.text  = roomMap[b.roomRef]   ?: "–"
             dateTv.text  = "${dateFmt.format(b.checkInDate.toDate())}  –  ${dateFmt.format(b.checkOutDate.toDate())}"
 
+            // 2) Mostramos/ocultamos el menú según canManage
+            btnMenu.visibility = if (canManage) View.VISIBLE else View.GONE
             // Observaciones
             if (b.observations.isNullOrBlank()) {
                 observationsTv.visibility = View.GONE
@@ -74,7 +77,7 @@ class BookingAdapter(
         /** Muestra el menú con acciones */
         private fun showPopupMenu() {
             current?.let { booking ->
-                PopupMenu(itemView.context, menuIv).apply {
+                PopupMenu(itemView.context, btnMenu).apply {
                     menuInflater.inflate(R.menu.menu_item_booking, menu)
                     setOnMenuItemClickListener { mi ->
                         when (mi.itemId) {
