@@ -271,7 +271,11 @@ class DashboardActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        loadUpcomingReservations()
+        // Barrer check-outs pendientes
+        lifecycleScope.launch {
+            repo.sweepCheckout()
+            loadUpcomingReservations()
+        }
     }
 
     // Recibe el resultado de AcceptInvitationActivity
@@ -307,7 +311,7 @@ class DashboardActivity : AppCompatActivity() {
     private fun handleMenuSelection(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_dash -> {
-                // ya estamos aquí…
+                // Dejar vacío, porque ya estas aquí
             }
             R.id.nav_hotel -> {
                 startActivity(Intent(this, HotelsActivity::class.java).apply {
@@ -360,7 +364,8 @@ class DashboardActivity : AppCompatActivity() {
                     Toast.LENGTH_LONG).show()
             }
     }
-
+/*
+funcion movida a BookingRepository
     fun sweepCheckout() {
         val now = Timestamp.now()
         db.collection("bookings")
@@ -377,4 +382,6 @@ class DashboardActivity : AppCompatActivity() {
                 }
             }
     }
+
+ */
 }

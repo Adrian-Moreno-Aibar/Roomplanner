@@ -1,12 +1,14 @@
 package com.adrianmoreno.roomplanner.repositories
 
 import android.util.Log
+import androidx.lifecycle.lifecycleScope
 import com.adrianmoreno.roomplanner.models.Booking
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FirebaseFirestoreException.Code
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class BookingRepository {
@@ -36,6 +38,23 @@ class BookingRepository {
                 "isClean" to false
             ))
             .await()
+    }
+
+
+    suspend fun sweepCheckout() {
+        val now = Timestamp.now()
+        val snaps = db.collection(BOOKINGS)
+            .whereLessThanOrEqualTo("checkOutDate", now)
+            .get()
+            .await()
+
+        snaps.documents.forEach { doc ->
+            val b = doc.toObject(Booking::class.java) ?: return@forEach
+            // 1) marcar habitación sucia
+           markRoomFreeAndDirty(b.roomRef)
+            // 2) eliminar reserva
+            //doc.reference.delete().await()
+        }
     }
 
     /**

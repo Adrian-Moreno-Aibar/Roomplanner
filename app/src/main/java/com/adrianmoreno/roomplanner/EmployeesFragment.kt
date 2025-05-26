@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -34,11 +35,11 @@ class EmployeesFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Inicializamos el ViewModel aquí
+        // Inicializamos el ViewModel
         userCtrl = ViewModelProvider(this).get(UserController::class.java)
 
         hotelId = requireArguments().getString(ARG_HOTEL_ID)
-            ?: throw IllegalArgumentException("EmployeesFragment needs HOTEL_ID")
+            ?: throw IllegalArgumentException("EmployeesFragment necesita HOTEL_ID")
         val hotelName = requireArguments().getString(ARG_HOTEL_NAME) ?: ""
         activity?.title = "Empleados • $hotelName"
     }
@@ -56,7 +57,7 @@ class EmployeesFragment : Fragment() {
         // Configurar RecyclerView
         rv.layoutManager = LinearLayoutManager(context)
         adapter = UserAdapter(
-            onEdit   = { /* TODO: implementar edición */ },
+            onEdit   = { /* TODO: implementar edición si hace falta aunque en principio no me interesa.*/ },
             onDelete = { uid ->
                 // En lugar de borrar el usuario, eliminamos solo el hotel de su array
                 userCtrl.removeCleanerFromHotel(uid, hotelId)
@@ -64,15 +65,15 @@ class EmployeesFragment : Fragment() {
         )
         rv.adapter = adapter
 
-        // Iniciar la carga de cleaners para este hotel
+        // Carga inicial de cleaners para este hotel
         userCtrl.loadCleanersForHotel(hotelId)
 
-        // Observar únicamente la lista de cleaners filtrados por el repositorio
+        // Observamos los cambios y actualizamos la lista
         userCtrl.cleaners.observe(viewLifecycleOwner, Observer { cleanersList ->
             adapter.submitList(cleanersList)
         })
 
-        // Abrir diálogo para crear nuevo cleaner
+        // Abrir diálogo para invitar nuevo cleaner
         fab.setOnClickListener {
             InviteCleanerDialogFragment(hotelId)
                 .show(childFragmentManager, "InviteCleaner")
@@ -81,4 +82,3 @@ class EmployeesFragment : Fragment() {
         return view
     }
 }
-

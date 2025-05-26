@@ -290,11 +290,7 @@ class HotelsActivity : AppCompatActivity() {
                 finish()
             }
             R.id.nav_hotel -> {
-                // Volver a Hoteles con los mismos extras
-                startActivity(Intent(this, HotelsActivity::class.java).apply {
-                    putExtra("USER_ROLE", role)
-                    putStringArrayListExtra("USER_HOTELS", ArrayList(hotelIds))
-                })
+                // Ya estamos aquí.
             }
             else -> {
                 // Si es un ítem no manejado, solo cerramos el drawer
