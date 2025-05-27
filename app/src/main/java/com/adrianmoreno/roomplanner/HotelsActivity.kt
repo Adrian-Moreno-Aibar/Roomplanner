@@ -7,6 +7,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -22,8 +23,10 @@ import com.adrianmoreno.roomplanner.adapter.HotelAdapter
 import com.adrianmoreno.roomplanner.controller.HotelController
 import com.adrianmoreno.roomplanner.models.Hotel
 import com.adrianmoreno.roomplanner.models.User
+import com.bumptech.glide.Glide
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class HotelsActivity : AppCompatActivity() {
@@ -33,6 +36,8 @@ class HotelsActivity : AppCompatActivity() {
 
     // ViewModel que maneja la lógica de negocio de hoteles
     private val controller: HotelController by viewModels()
+
+    private val db = FirebaseFirestore.getInstance()
 
     // Adapter para el RecyclerView
     private lateinit var adapter: HotelAdapter
@@ -149,15 +154,36 @@ class HotelsActivity : AppCompatActivity() {
         navigationView = findViewById(R.id.nav_view)
 
         // Obtener la vista del header
-        val headerView    = navigationView.getHeaderView(0)
-        val headerEmail   = headerView.findViewById<TextView>(R.id.header_email)
-        val headerUsername= headerView.findViewById<TextView>(R.id.header_username)
+        // Obtenemos la vista del header
+        val headerView   = navigationView.getHeaderView(0)
+        val avatarIv     = headerView.findViewById<ImageView>(R.id.header_avatar)
+        val nameTv       = headerView.findViewById<TextView>(R.id.header_username)
+        val editIv       = headerView.findViewById<ImageView>(R.id.header_edit)
 
-        // Obtener el usuario actual
-        FirebaseAuth.getInstance().currentUser?.let { user ->
-            headerEmail.text = user.email
-            user.displayName?.let { headerUsername.text = it }
+        // Cargar datos del usuario
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            db.collection("users").document(uid)
+                .get()
+                .addOnSuccessListener { snap ->
+                    val user = snap.toObject(User::class.java)
+                    user?.let {
+                        // Nombre
+                        nameTv.text = it.name.ifEmpty { "Usuario" }
+                        // Foto (o placeholder)
+                        Glide.with(this)
+                            .load(it.photoUrl.ifEmpty { R.drawable.gato })
+                            .circleCrop()
+                            .into(avatarIv)
+                    }
+                }
         }
+
+        // Al pulsar el lápiz, abrimos diálogo para editar
+        editIv.setOnClickListener {
+            showEditProfileDialog(uid, nameTv, avatarIv)
+        }
+
 
         // Configurar el NavigationView
         navigationView.setNavigationItemSelectedListener { menuItem ->
@@ -331,5 +357,55 @@ class HotelsActivity : AppCompatActivity() {
         super.onBackPressed()
         // Esto cierra toda la aplicación
         finishAffinity()
+    }
+
+    private fun showEditProfileDialog(
+        uid: String?,
+        nameTv: TextView,
+        avatarIv: ImageView
+    ) {
+        if (uid == null) return
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_profile, null)
+        val etName     = dialogView.findViewById<EditText>(R.id.etName)
+        val etPhoto    = dialogView.findViewById<EditText>(R.id.etPhotoUrl)
+
+        // Prellenar con valores actuales
+        etName.setText(nameTv.text)
+        // Opcionalmente, almacena la URL previa en un campo
+        db.collection("users").document(uid)
+            .get()
+            .addOnSuccessListener { snap ->
+                val url = snap.getString("photoUrl") ?: ""
+                etPhoto.setText(url)
+            }
+
+        AlertDialog.Builder(this)
+            .setTitle("Editar perfil")
+            .setView(dialogView)
+            .setPositiveButton("Guardar") { _, _ ->
+                val newName = etName.text.toString().trim()
+                val newUrl  = etPhoto.text.toString().trim()
+                // Actualizamos en Firestore
+                db.collection("users").document(uid)
+                    .update(mapOf(
+                        "name"     to newName,
+                        "photoUrl" to newUrl
+                    ))
+                    .addOnSuccessListener {
+                        // Refrescamos header
+                        nameTv.text = newName
+                        Glide.with(this)
+                            .load(newUrl.ifEmpty { R.drawable.gato})
+                            .circleCrop()
+                            .into(avatarIv)
+                        Toast.makeText(this, "Perfil actualizado", Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(this, "Error al guardar", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 }

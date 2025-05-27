@@ -9,33 +9,32 @@
     android:paddingTop="40dp">
 
     <ImageView
-        android:id="@+id/header_image"
+        android:id="@+id/header_avatar"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:src="@drawable/gato"
+        android:scaleType="centerCrop"
         android:layout_gravity="center"
-        android:contentDescription="Imagen de usuario"
-        android:layout_marginBottom="8dp" />
+        android:background="@drawable/circlebackground" />
+
     <TextView
-        android:id="@+id/header_email"
+        android:id="@+id/header_username"
         android:textColor="@color/black"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="amoraib0204@g.educaand.es"
         android:gravity="center"
+        android:padding="5dp"
         android:textSize="16sp"
         android:textStyle="bold"
         />
 
-    <TextView
-        android:id="@+id/header_username"
-        android:layout_width="match_parent"
-        android:textColor="@color/black"
-        android:layout_height="wrap_content"
-        android:text="RoomPlanner"
-        android:textSize="14sp"
-
-        android:gravity="center" />
+    <ImageView
+        android:id="@+id/header_edit"
+        android:layout_width="24dp"
+        android:layout_gravity="center"
+        android:layout_height="24dp"
+        android:src="@drawable/lapiz"/>
 
 
 </LinearLayout>

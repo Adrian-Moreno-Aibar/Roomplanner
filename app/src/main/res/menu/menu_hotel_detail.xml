@@ -2,10 +2,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_rooms"
-        android:icon="@drawable/logo_prov2"
+        android:icon="@drawable/logo_prov"
         android:title="Habitaciones"/>
     <item
         android:id="@+id/nav_employees"
-        android:icon="@drawable/logo_prov"
+        android:icon="@drawable/user"
         android:title="Empleados"/>
 </menu>

@@ -5,9 +5,12 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -21,6 +24,7 @@ import com.adrianmoreno.roomplanner.models.Booking
 import com.adrianmoreno.roomplanner.models.Room
 import com.adrianmoreno.roomplanner.models.User
 import com.adrianmoreno.roomplanner.repositories.BookingRepository
+import com.bumptech.glide.Glide
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -100,6 +104,36 @@ class DashboardActivity : AppCompatActivity() {
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        // Obtenemos la vista del header
+        val headerView   = navigationView.getHeaderView(0)
+        val avatarIv     = headerView.findViewById<ImageView>(R.id.header_avatar)
+        val nameTv       = headerView.findViewById<TextView>(R.id.header_username)
+        val editIv       = headerView.findViewById<ImageView>(R.id.header_edit)
+
+        // Cargar datos del usuario
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            db.collection("users").document(uid)
+                .get()
+                .addOnSuccessListener { snap ->
+                    val user = snap.toObject(User::class.java)
+                    user?.let {
+                        // Nombre
+                        nameTv.text = it.name.ifEmpty { "Usuario" }
+                        // Foto (o placeholder)
+                        Glide.with(this)
+                            .load(it.photoUrl.ifEmpty { R.drawable.gato })
+                            .circleCrop()
+                            .into(avatarIv)
+                    }
+                }
+        }
+
+        // Al pulsar el lápiz, abrimos diálogo para editar
+        editIv.setOnClickListener {
+            showEditProfileDialog(uid, nameTv, avatarIv)
+        }
 
         val fabNewReservation = findViewById<Button>(R.id.fabNewReservation)
         // sólo Admin o Super pueden crear reservas
@@ -345,5 +379,55 @@ class DashboardActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG).show()
                 }
         }
+    }
+
+    private fun showEditProfileDialog(
+        uid: String?,
+        nameTv: TextView,
+        avatarIv: ImageView
+    ) {
+        if (uid == null) return
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_profile, null)
+        val etName     = dialogView.findViewById<EditText>(R.id.etName)
+        val etPhoto    = dialogView.findViewById<EditText>(R.id.etPhotoUrl)
+
+        // Prellenar con valores actuales
+        etName.setText(nameTv.text)
+        // Opcionalmente, almacena la URL previa en un campo
+        db.collection("users").document(uid)
+            .get()
+            .addOnSuccessListener { snap ->
+                val url = snap.getString("photoUrl") ?: ""
+                etPhoto.setText(url)
+            }
+
+        AlertDialog.Builder(this)
+            .setTitle("Editar perfil")
+            .setView(dialogView)
+            .setPositiveButton("Guardar") { _, _ ->
+                val newName = etName.text.toString().trim()
+                val newUrl  = etPhoto.text.toString().trim()
+                // Actualizamos en Firestore
+                db.collection("users").document(uid)
+                    .update(mapOf(
+                        "name"     to newName,
+                        "photoUrl" to newUrl
+                    ))
+                    .addOnSuccessListener {
+                        // Refrescamos header
+                        nameTv.text = newName
+                        Glide.with(this)
+                            .load(newUrl.ifEmpty { R.drawable.gato })
+                            .circleCrop()
+                            .into(avatarIv)
+                        Toast.makeText(this, "Perfil actualizado", Toast.LENGTH_SHORT).show()
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(this, "Error al guardar", Toast.LENGTH_SHORT).show()
+                    }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 }
