@@ -6,4 +6,11 @@
     <string name="close_drawer">Cerrar menú</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string-array name="room_categories">
+        <item>Individual</item>
+        <item>Doble</item>
+        <item>Familiar</item>
+        <item>Suite</item>
+    </string-array>
 </resources>

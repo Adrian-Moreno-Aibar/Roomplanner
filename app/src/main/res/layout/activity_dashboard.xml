@@ -25,7 +25,7 @@
                 android:text="Bienvenid@!!"
                 android:textColor="@color/black"
                 android:textSize="24sp"
-                android:paddingTop="16dp"
+                android:paddingTop="20dp"
                 android:textStyle="bold"/>
 
             <!-- 2. Métricas KPI -->

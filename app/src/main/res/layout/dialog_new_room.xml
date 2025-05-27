@@ -12,5 +12,24 @@
         android:layout_height="wrap_content"
         android:hint="Número de habitación"
         android:inputType="text"/>
+    <!-- Spinner de categoría -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Categoría"
+        android:layout_marginTop="16dp"/>
+    <Spinner
+        android:id="@+id/spinnerCategory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <!-- Precio -->
+    <EditText
+        android:id="@+id/editRoomPrice"
+        android:hint="Precio por noche"
+        android:inputType="numberDecimal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"/>
 
 </LinearLayout>

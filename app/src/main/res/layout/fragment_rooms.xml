@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/fragment_rooms"
+    android:paddingTop="30dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingBottom="30dp">
@@ -12,12 +13,26 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="8dp"
         android:text="Habitaciones"
         android:textSize="24sp"
-        android:padding="16dp"
+        android:textStyle="bold"
+        android:paddingBottom="10dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintEnd_toStartOf="@+id/chipOnlyDirty"/>
+
+    <!-- Chip situado a la derecha del título -->
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chipOnlyDirty"
+        style="@style/Widget.MaterialComponents.Chip.Choice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Solo habitaciones sucias"
+        app:layout_constraintBaseline_toBaselineOf="@id/roomsTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp"/>
 
 
     <androidx.recyclerview.widget.RecyclerView
@@ -46,5 +61,7 @@
         android:src="@drawable/mas"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

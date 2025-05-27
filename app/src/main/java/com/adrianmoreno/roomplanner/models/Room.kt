@@ -7,6 +7,8 @@ data class Room(
     val hotelRef: String = "",
     val number: String = "",
     val status: String = "",        // "OCUPADA" / "LIBRE"
+    val category: String = "",      // “Individual”, “Doble”, “Suite”, …
+    val pricePerNight: Double = 0.0, // tarifa en euros
 
     @get:PropertyName("isClean")
     @set:PropertyName("isClean")
@@ -15,6 +17,6 @@ data class Room(
     val reservedRanges: List<ReservedRange> = emptyList()
 ) {
     override fun toString(): String {
-        return "Room(id='$id', hotelRef='$hotelRef', number='$number', status='$status', isClean=$isClean, reservedRanges=$reservedRanges)"
+        return "Room(id='$id', hotelRef='$hotelRef', number='$number', status='$status', isClean=$isClean, reservedRanges=$reservedRanges,category='$category', pricePerNight='$pricePerNight')"
     }
 }

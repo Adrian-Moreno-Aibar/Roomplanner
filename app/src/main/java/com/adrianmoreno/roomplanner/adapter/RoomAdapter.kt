@@ -47,6 +47,8 @@ class RoomAdapter(
         private val btnToggleClean = view.findViewById<Button>(R.id.btnToggleClean)
         private val btnMenu        = view.findViewById<ImageView>(R.id.btnRoomMenu)
         private var current: Room? = null
+        private val categoryTv    = view.findViewById<TextView>(R.id.tvCategory)
+        private val priceTv       = view.findViewById<TextView>(R.id.tvPrice)
 
         init {
             btnToggleClean.setOnClickListener {
@@ -60,6 +62,8 @@ class RoomAdapter(
 
         fun bind(r: Room) {
             current = r
+            categoryTv.text    = "Categoría: ${r.category}"
+            priceTv.text       = "€ %.2f/noche".format(r.pricePerNight)
             numberTv.text      = r.number
             statusTv.text      = r.status
             cleanStatusTv.text = if (r.isClean) "Limpia" else "Sucia"
