@@ -1,3 +1,17 @@
+/**
+ * HotelAdapter
+ * ============
+ *
+ * Adapter para RecyclerView que muestra la lista de hoteles.
+ * Gestiona la visualización de cada `Hotel` y ofrece acciones de click,
+ * editar y eliminar según los permisos (`canManage`).
+ *
+ * Parámetros:
+ * - onClick: callback al pulsar el item (abre detalle de hotel).
+ * - onEdit: callback al pulsar "Editar" en el menú contextual.
+ * - onDelete: callback al pulsar "Eliminar", recibe el ID del hotel.
+ * - canManage: indica si se muestran las opciones de menú para editar/eliminar.
+ */
 package com.adrianmoreno.roomplanner.adapter
 
 import android.view.LayoutInflater

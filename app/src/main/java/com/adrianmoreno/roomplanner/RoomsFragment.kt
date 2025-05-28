@@ -1,4 +1,12 @@
-// src/main/java/com/adrianmoreno/roomplanner/RoomsFragment.kt
+/**
+ * RoomsFragment
+ * =============
+ *
+ * Fragmento que muestra una cuadrícula de habitaciones para un hotel específico.
+ * Permite filtrar por habitaciones sucias, crear, editar, borrar e indicar si están limpias o sucias.
+ * Utiliza RoomController para la lógica de negocio y LiveData para actualizar la UI.
+ */
+
 package com.adrianmoreno.roomplanner
 
 import android.os.Bundle
@@ -35,6 +43,7 @@ class RoomsFragment : Fragment() {
         private const val ARG_HOTEL_NAME = "ARG_HOTEL_NAME"
         private const val ARG_USER_ROLE  = "USER_ROLE"
 
+        //  Crear nueva instancia de RoomsFragment con argumentos.
         fun newInstance(hotelId: String, hotelName: String, role: String) = RoomsFragment().apply {
             arguments = Bundle().apply {
                 putString(ARG_HOTEL_ID, hotelId)
@@ -47,11 +56,12 @@ class RoomsFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Recuperar argumentos obligatorios
         hotelId = arguments?.getString(ARG_HOTEL_ID)
             ?: throw IllegalArgumentException("RoomsFragment requires a hotelId")
         role    = arguments?.getString(ARG_USER_ROLE)!!
         val hotelName = arguments?.getString(ARG_HOTEL_NAME) ?: ""
-        // Si quieres, pon el título del Toolbar aquí:
+        // Escribir el nombre del hotel
         activity?.title = hotelName
 
 
@@ -65,13 +75,16 @@ class RoomsFragment : Fragment() {
         // Inflamos el layout fragment_rooms.xml
         val view = inflater.inflate(R.layout.fragment_rooms, container, false)
 
+        // Inicializar RecyclerView en cuadrícula de 2 columnas
         val recycler = view.findViewById<RecyclerView>(R.id.roomsRecyclerView)
         val fabAdd = view.findViewById<Button>(R.id.fabAddRoom)
-        // ahora `role` está disponible aquí
+        /* Comprobar si el usuario es cleaner para esconder las partes relacionadas con el CRUD*/
         if (role == "CLEANER") {
             fabAdd.visibility = View.GONE
         }
 
+
+        // Chip para filtrar Solo habitaciones sucias
         val chipOnlyDirty = view.findViewById<Chip>(R.id.chipOnlyDirty)
         chipOnlyDirty.setOnCheckedChangeListener { _, checked ->
             controller.rooms.value?.let { list ->
@@ -86,8 +99,10 @@ class RoomsFragment : Fragment() {
         }
 
 
+        // Configurar adapter con callbacks
         recycler.layoutManager = GridLayoutManager(context, 2)
         adapter = RoomAdapter(
+            // Actualizar campo isClean en Firestore
             onToggleClean = { roomId, newClean ->
                 db.collection("rooms").document(roomId)
                     .update("isClean", newClean)
@@ -104,9 +119,10 @@ class RoomsFragment : Fragment() {
         )
         recycler.adapter = adapter
 
+        // Observar LiveData de habitaciones para actualizar UI
         controller.rooms.observe(viewLifecycleOwner) { list ->
-            // Extraemos sólo los dígitos de `room.number` y convertimos a Int para pasar
-            // la lista de habitaciones ordenada
+            // Extraemos sólo los números de `room.number` ylos  convertimos a Int para
+            // ordenar la lista numéricamente
             val sorted = list.sortedBy { room ->
                 room.number.filter { it.isDigit() }
                     .toIntOrNull() ?: Int.MAX_VALUE
@@ -115,17 +131,19 @@ class RoomsFragment : Fragment() {
         }
 
 
-        // Carga inicial + sincronización de estados
+        // Carga inicial: sincronizar estados y luego obtener habitaciones
         lifecycleScope.launch {
             controller.syncRoomStatuses(hotelId)
             controller.loadRooms(hotelId)
         }
 
+        // Abrir diálogo de nueva habitación
         fabAdd.setOnClickListener { showAddDialog() }
 
         return view
     }
 
+     //Dialogo para crear una nueva habitación
     private fun showAddDialog() {
         val v = LayoutInflater.from(context)
             .inflate(R.layout.dialog_new_room, null)
@@ -173,6 +191,7 @@ class RoomsFragment : Fragment() {
             .show()
     }
 
+    //Dialogo para editar
     private fun showEditDialog(room: Room) {
         val v = LayoutInflater.from(context)
             .inflate(R.layout.dialog_new_room, null)

@@ -1,3 +1,18 @@
+/**
+ * RoomAdapter
+ * ===========
+ *
+ * Un adapter para las habitaciones que muestra las habitaciones en cuadrícula.
+ * Gestiona la visualización de cada `Room` y ofrece acciones de marcar limpieza,
+ * editar o eliminar según los permisos (`canManage`).
+ *
+ * Parámetros:
+ * - onToggleClean: callback al pulsar el botón de alternar limpieza (roomId, nuevo estado).
+ * - onEdit: callback al pulsar "Editar" en el menú contextual, recibe el objeto Room.
+ * - canManage: indica si se muestran las opciones de menú para editar/eliminar.
+ * - onDelete: callback al pulsar "Eliminar", recibe el ID de la habitación.
+ */
+
 package com.adrianmoreno.roomplanner.adapter
 
 import android.view.LayoutInflater
@@ -68,12 +83,12 @@ class RoomAdapter(
             statusTv.text      = r.status
             cleanStatusTv.text = if (r.isClean) "Limpia" else "Sucia"
             btnToggleClean.text = if (r.isClean) "Marcar sucia" else "Marcar limpia"
-            // 1) Saquemos el rol de la Activity (DashboardActivity tiene un campo public 'role')
+            // Saquemos el rol de la Activity (DashboardActivity tiene un campo public 'role')
             val role = (itemView.context as? HotelsActivity)?.role ?: "CLEANER"
-            // 2) Mostramos/ocultamos el menú según canManage
+            //  Mostramos/ocultamos el menú según canManage
             btnMenu.visibility = if (canManage) View.VISIBLE else View.GONE
 
-            // 3) Listener del toggle
+            //Listener del toggle
             btnToggleClean.setOnClickListener {
                 onToggleClean(r.id, !r.isClean)
             }

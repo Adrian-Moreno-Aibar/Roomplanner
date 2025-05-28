@@ -1,3 +1,19 @@
+/**
+ * BookingAdapter
+ * ==============
+ *
+ * Adapter para RecyclerView que muestra una lista de reservas (`Booking`).
+ * Gestiona:
+ * - Mostrar datos de reserva (cliente, hotel, habitación, fechas y observaciones).
+ * - Opciones "Editar" y "Eliminar" en un menú contextual (según `canManage`).
+ *
+ * Parámetros:
+ * - hotelMap: mapeo hotelRef -> nombre del hotel.
+ * - roomMap: mapeo roomRef -> número de habitación.
+ * - canManage: indica si se muestran las opciones de menú para editar/eliminar.
+ * - onEdit: callback al pulsar "Editar", recibe el objeto Booking.
+ * - onDelete: callback al pulsar "Eliminar", recibe el ID de la reserva.
+ */
 package com.adrianmoreno.roomplanner.adapter
 
 import android.view.LayoutInflater
@@ -63,7 +79,7 @@ class BookingAdapter(
             roomTv.text  = roomMap[b.roomRef]   ?: "–"
             dateTv.text  = "${dateFmt.format(b.checkInDate.toDate())}  –  ${dateFmt.format(b.checkOutDate.toDate())}"
 
-            // 2) Mostramos/ocultamos el menú según canManage
+            // Mostramos/ocultamos el menú según canManage
             btnMenu.visibility = if (canManage) View.VISIBLE else View.GONE
             // Observaciones
             if (b.observations.isNullOrBlank()) {
