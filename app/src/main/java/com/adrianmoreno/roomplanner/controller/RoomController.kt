@@ -1,4 +1,10 @@
-// com/adrianmoreno/roomplanner/controller/RoomController.kt
+/**
+ * RoomController
+ * --------------
+ * Gestiona la lista de habitaciones de un hotel y las operaciones de creación,
+ * actualización, borrado y sincronización de estados según reservas.
+ */
+
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData
@@ -52,11 +58,12 @@ class RoomController(
     }
 
     /**
-     * Sincroniza el campo `status` de cada habitación conforme a la fecha actual y las reservas.
-     * Ocupada si hay una reserva activa; libre en caso contrario.
+     * Sincroniza el estado (`status`) de las habitaciones revisando la última reserva.
+     * - Ocupada si existe una reserva con `checkInDate` ≤ ahora y `checkOutDate` > ahora.
+     * - Libre en cualquier otro caso.
      */
     suspend fun syncRoomStatuses(hotelId: String) {
-        // 1) Leer todas las habitaciones de este hotel
+        // 1) Obtener todas las habitaciones
         val roomsSnap = db.collection("rooms")
             .whereEqualTo("hotelRef", hotelId)
             .get()
@@ -64,15 +71,13 @@ class RoomController(
 
         val now = Timestamp.now()
 
-        for (doc in roomsSnap.documents) {
-            val room = doc.toObject(Room::class.java) ?: continue
+        roomsSnap.documents.forEach { doc ->
+            val room = doc.toObject(Room::class.java) ?: return@forEach
             val roomRef = doc.reference
 
-            // 2) Consulta INDEXABLE Y AUTORIZADA:
-            //    - Igualdad hotelRef
-            //    - Igualdad roomRef
-            //    - Desigualdad checkInDate <= now
-            //    - Orden descendente por checkInDate
+            // 2) Consultar la última reserva:
+            //    filtros: hotelRef == hotelId, roomRef == room.id, checkInDate ≤ now,
+            //    orden descendente por checkInDate, limit 1
             val lastBookingSnap = db.collection("bookings")
                 .whereEqualTo("hotelRef", hotelId)
                 .whereEqualTo("roomRef", room.id)
@@ -82,7 +87,7 @@ class RoomController(
                 .get()
                 .await()
 
-            // 3) Si existe reserva y aún no terminó → OCUPADA
+            // 3) Determinar si está ocupada: existe reserva con checkOutDate > now
             val isOccupied = lastBookingSnap.documents
                 .mapNotNull { it.toObject(com.adrianmoreno.roomplanner.models.Booking::class.java) }
                 .firstOrNull()

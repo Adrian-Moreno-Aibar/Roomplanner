@@ -1,3 +1,11 @@
+/**
+ * UserRepository
+ * ==============
+ *
+ * Gestiona el perfil y acceso de usuarios en Firestore, integrándose con FirebaseAuth.
+ * Permite crear, eliminar y consultar usuarios, así como manejar su asignación a hoteles.
+ */
+
 package com.adrianmoreno.roomplanner.repositories
 
 import android.util.Log
@@ -15,11 +23,17 @@ class UserRepository(
 
     private val COLLECTION = "users"
 
-    // Referencia al documento del usuario actual
+    /** Obtiene la referencia al documento de Firestore del usuario autenticado.
+    * @return DocumentReference o null si no hay usuario autenticado.
+    */
     fun getCurrentUserDoc(): DocumentReference? =
         auth.currentUser?.uid?.let { db.collection(COLLECTION).document(it) }
 
-    // Crear perfil de usuario tras registro
+    /**
+     * Crea el perfil de usuario en Firestore tras el registro.
+     * @param user Objeto User con datos básicos (UID, nombre, email, rol, etc.).
+     * @return true si la operación es exitosa.
+     */
     suspend fun createUserProfile(user: User): Boolean = try {
         getCurrentUserDoc()?.set(user)?.await()
         true
@@ -28,7 +42,7 @@ class UserRepository(
         false
     }
 
-    // Leer un usuario concreto
+    /* Leer un usuario concreto
     fun getUserById(uid: String, callback: (User?) -> Unit) {
         db.collection(COLLECTION).document(uid)
             .get()
@@ -64,8 +78,10 @@ class UserRepository(
         Log.e("UserRepo", "Error actualizando usuario", e)
         false
     }
+    */
 
-    // Eliminar usuario
+
+    // Eliminar usuario por id
     suspend fun deleteUser(uid: String): Boolean = try {
         db.collection(COLLECTION).document(uid)
             .delete()
@@ -77,7 +93,7 @@ class UserRepository(
     }
 
     /**
-     * Devuelve la lista de usuarios asignados al hotel especificado.
+     * Devuelve la lista de usuarios (Cleaner y Admin) asignados al hotel especificado.
      */
     fun getUsersForHotel(hotelId: String, callback: (List<User>) -> Unit) {
         db.collection(COLLECTION)
@@ -94,7 +110,8 @@ class UserRepository(
             }
     }
 
-    suspend fun removeCleanerFromHotel(uid: String, hotelId: String): Boolean = try {
+    //elimina el id de un hotel de un usuario eliminando así su acceso.
+    suspend fun removeUserFromHotel(uid: String, hotelId: String): Boolean = try {
         db.collection("users").document(uid)
             .update("hotelRefs", FieldValue.arrayRemove(hotelId))
             .await()

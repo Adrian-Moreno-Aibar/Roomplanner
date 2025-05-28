@@ -1,3 +1,21 @@
+/**
+ * HotelsActivity
+ * ==============
+ *
+ * Muestra la lista de hoteles y permite operaciones CRUD según el rol:
+ * - SUPERADMIN: gestiona todos los hoteles.
+ * - ADMIN: gestiona sus hoteles.
+ * - CLEANER: visualiza hoteles asignados.
+ *
+ * Funcionalidades:
+ * - Lista interactiva de hoteles (RecyclerView + HotelAdapter).
+ * - Crear nuevo hotel (diálogo) si rol ADMIN/SUPERADMIN.
+ * - Editar hotel existente (diálogo).
+ * - Borrar hotel con confirmación (cascada).
+ * - Navegación al Dashboard.
+ * - Drawer con perfil y logout.
+ */
+
 package com.adrianmoreno.roomplanner
 
 import android.content.Intent

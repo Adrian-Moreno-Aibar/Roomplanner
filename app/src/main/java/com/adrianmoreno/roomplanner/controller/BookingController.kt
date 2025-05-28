@@ -1,4 +1,4 @@
-// com/adrianmoreno/roomplanner/controller/BookingController.kt
+
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData

@@ -1,3 +1,20 @@
+/**
+ * BookingRepository
+ * =================
+ *
+ * Esta clase se encarga de todas las operaciones relacionadas con las reservas
+ *  y la actualización del estado de las habitaciones en Firestore.
+ * Utiliza corrutinas para llamadas asíncronas y asegura que cada reserva respete
+ * las reglas de disponibilidad y limpieza.
+ *
+ * Principales responsabilidades:
+ * 1. Crear, leer, actualizar y eliminar reservas en la colección 'bookings'.
+ * 2. Marcar habitaciones como ocupadas, libres o sucias en la colección 'rooms'.
+ * 3. Comprobar solapamientos de fechas antes de crear o actualizar una reserva.
+ * 4. Borrar reservas caducadas (checkout) y liberar habitaciones automáticamente.
+ */
+
+
 package com.adrianmoreno.roomplanner.repositories
 
 import android.util.Log
@@ -23,14 +40,14 @@ class BookingRepository {
             .await()
     }
 
-    /** Marca una habitación como libre (cancelación), sin tocar isClean */
+    /** Marca una habitación como libre (cancelación), sin ensuciarla */
     private suspend fun markRoomFree(roomId: String) {
         db.collection(ROOMS).document(roomId)
             .update("status", "LIBRE")
             .await()
     }
 
-    /** Marca una habitación libre y la ensucia (checkout real) */
+    /** Marca una habitación libre y la ensucia (checkout) */
     suspend fun markRoomFreeAndDirty(roomId: String) {
         db.collection(ROOMS).document(roomId)
             .update(mapOf(
@@ -40,7 +57,11 @@ class BookingRepository {
             .await()
     }
 
-
+    /**
+     * Función que busca reservas que ya hayan acabado para borrarlas
+     * y marcar las habitaciones como libres y sucias
+     * Busca y procesa checkout automático de reservas cuya fecha de salida ya pasó.
+     */
     suspend fun sweepCheckout(hotelIds: List<String>) {
         val now = Timestamp.now()
         hotelIds.forEach { hotelId ->
@@ -62,7 +83,8 @@ class BookingRepository {
     }
 
     /**
-     * Recupera reservas que se solapen con el rango dado
+     * Recupera reservas que se solapan con un rango de fechas dado.
+     * Primero intenta usar un índice optimizado, si falta, hace fallback a filtrado en cliente.
      */
     private suspend fun getOverlapping(
         hotelId: String,
@@ -70,7 +92,7 @@ class BookingRepository {
         checkIn: Timestamp,
         checkOut: Timestamp
     ): List<Booking> {
-        // ... tu implementación actual (idéntica) ...
+        // Consulta optimizada: fecha de entrada menor que salida deseada
         return try {
             val snaps = db.collection(BOOKINGS)
                 .whereEqualTo("hotelRef", hotelId)
@@ -78,11 +100,13 @@ class BookingRepository {
                 .whereLessThan("checkInDate", checkOut)
                 .get()
                 .await()
+            // Filtrado de salidas posteriores a la fecha de entrada deseada
             snaps.mapNotNull { it.toObject(Booking::class.java) }
                 .filter { it.checkOutDate.toDate().after(checkIn.toDate()) }
         } catch (e: FirebaseFirestoreException) {
             if (e.code == Code.FAILED_PRECONDITION) {
                 Log.w("BookingRepo", "Índice faltante, fallback cliente")
+                // Fallback: obtiene todos y filtra manualmente
                 val snaps = db.collection(BOOKINGS)
                     .whereEqualTo("hotelRef", hotelId)
                     .whereEqualTo("roomRef", roomId)
@@ -168,7 +192,7 @@ class BookingRepository {
      * “Cancelación” de reserva desde la UI:
      * - elimina el documento
      * - quita el rango de reservedRanges
-     * - libera la habitación **sin** ensuciarla
+     * - libera la habitación sin actualizar isClean
      */
     suspend fun cancelReservation(id: String): Boolean {
         return try {
@@ -199,7 +223,7 @@ class BookingRepository {
     }
 
     /**
-     * Borrado “puro” de reserva (p. ej. mantenimiento), quita también el rango y deja estado
+     * Borrado “puro” de reserva (ej. mantenimiento), quita también el rango y deja estado
      * de room a libre (pero sin tocar isClean ni reservedRanges adicionales).
      */
     suspend fun delete(id: String): Boolean {

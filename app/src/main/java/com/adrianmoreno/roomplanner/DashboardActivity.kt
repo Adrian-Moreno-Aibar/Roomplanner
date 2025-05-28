@@ -1,3 +1,17 @@
+/**
+ * DashboardActivity
+ * =================
+ *
+ * Actividad principal tras login. Muestra métricas y lista de reservas próximas,
+ * además de navegación mediante un drawer lateral a otras secciones.
+ * Permite:
+ *  - Saludo personalizado con nombre y foto del usuario.
+ *  - Mostrar número total de hoteles, habitaciones y habitaciones libres.
+ *  - Crear nueva reserva (si rol ADMIN/SUPERADMIN).
+ *  - Unirse a hotel con un token.
+ *  - Lista de reservas con acciones de editar/borrar según rol.
+ *  - Sincronización automática de check-outs (sweepCheckout) al reanudar.
+ */
 package com.adrianmoreno.roomplanner
 
 import android.content.Intent
@@ -59,11 +73,11 @@ class DashboardActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
-        tvWelcome = findViewById(R.id.tvWelcome)
-
         // Inicializamos el ViewModel de hoteles
         hotelController = ViewModelProvider(this).get(HotelController::class.java)
 
+        // Saludo básico
+        tvWelcome = findViewById(R.id.tvWelcome)
         // Cargamos el nombre real del usuario para el saludo
         FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
             FirebaseFirestore.getInstance()
@@ -93,7 +107,7 @@ class DashboardActivity : AppCompatActivity() {
         // Carga inicial de mapas (hoteles / habitaciones) antes de mostrar métricas
         loadHotelMap()
 
-        // Configuramos drawer
+        // Configurae el drawer
         drawerLayout   = findViewById(R.id.drawer_layout)
         navigationView = findViewById(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener { handleMenuSelection(it) }
@@ -143,6 +157,7 @@ class DashboardActivity : AppCompatActivity() {
 
     }
 
+     // Carga el mapa de los hoteles usando hotelId -> hotelName y luego las habitaciones.
     private fun loadHotelMap() {
         if (hotelIds.isEmpty()) {
             hotelMap = emptyMap()
@@ -188,6 +203,11 @@ class DashboardActivity : AppCompatActivity() {
             }
     }
 
+    /**
+    Muestra las métricas del total  de hoteles a los que pertenece el usuario,
+    las habitaciones de esos hoteles y las habitaciones ibres,
+    también se carga la lista de reservas próximas de aqui al próximo mes.
+    */
     private fun initMetricsAndList() {
         // Métricas
         findViewById<TextView>(R.id.tvTotalHotels).text =
@@ -197,7 +217,7 @@ class DashboardActivity : AppCompatActivity() {
         val tvFree  = findViewById<TextView>(R.id.tvFreeRooms)
         if (hotelIds.isEmpty()) {
             tvRooms.text = "0\nHabitaciones"
-            tvFree.text  = "0\nLibres"
+            tvFree.text  = "0\nHabs. libres"
         } else {
             db.collection("rooms")
                 .whereIn("hotelRef", hotelIds)
@@ -205,18 +225,18 @@ class DashboardActivity : AppCompatActivity() {
                 .addOnSuccessListener { snaps ->
                     val rooms = snaps.mapNotNull { it.toObject(Room::class.java) }
                     tvRooms.text = "${rooms.size}\nHabitaciones"
-                    tvFree.text  = "${rooms.count { it.status == "LIBRE" }}\nLibres"
+                    tvFree.text  = "${rooms.count { it.status == "LIBRE" }}\nHabs. libres"
                 }
                 .addOnFailureListener {
                     tvRooms.text = "0\nHabitaciones"
-                    tvFree.text  = "0\nLibres"
+                    tvFree.text  = "0\nHabs. libres"
                 }
         }
 
         // Lista de reservas
         setupReservationsList()
 
-        // Botón nueva reserva
+        // Botón para crear una nueva reserva
         findViewById<Button>(R.id.fabNewReservation)
             .setOnClickListener {
                 if (hotelIds.isEmpty()) {
@@ -239,6 +259,7 @@ class DashboardActivity : AppCompatActivity() {
             }
     }
 
+    // Configuración del RecyclerView para mostrar las reservas y definir sus listeners.
     private fun setupReservationsList() {
         val rv = findViewById<RecyclerView>(R.id.rvReservations)
         rv.layoutManager = LinearLayoutManager(this)
@@ -270,11 +291,12 @@ class DashboardActivity : AppCompatActivity() {
         loadUpcomingReservations()
     }
 
+    //Cargar las reservas un rango determinado (de dos semanas átras hasta dentro de un mes en este caso)
     private fun loadUpcomingReservations() {
         if (!::bookingAdapter.isInitialized) return
 
         val today      = Timestamp.now()
-        val checkInMin = Timestamp(today.seconds - 7 * 24 * 3600, 0)
+        val checkInMin = Timestamp(today.seconds - 14 * 24 * 3600, 0)
         val checkOutMax = Timestamp(today.seconds + 30 * 24 * 3600, 0)
 
         if (hotelIds.isEmpty()) {
@@ -302,13 +324,13 @@ class DashboardActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch {
-            // Barrer check-outs automáticos al arrancar (ensucia y libera)
+          //Al cargar, "barre" automaticamente las reservas y actualiza el estado de las habitaciones
             repo.sweepCheckout(hotelIds)
             loadUpcomingReservations()
         }
     }
 
-    // Manejo de resultado al unirse a hotel
+    // Recibe resultado de AcceptInvitationActivity y recarga hoteles.
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQ_JOIN && resultCode == RESULT_OK) {
@@ -325,12 +347,14 @@ class DashboardActivity : AppCompatActivity() {
         }
     }
 
+
     fun launchAcceptInvitation(token: String) {
         val intent = Intent(this, AcceptInvitationActivity::class.java)
             .putExtra("INV_TOKEN", token)
         startActivityForResult(intent, REQ_JOIN)
     }
 
+    //Manejo del menú lateral
     private fun handleMenuSelection(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_dash -> { /* Ya estás aquí */ }
@@ -348,6 +372,7 @@ class DashboardActivity : AppCompatActivity() {
         return true
     }
 
+    // Abrir drawer al pulsar icono
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             drawerLayout.openDrawer(GravityCompat.START)
@@ -356,6 +381,7 @@ class DashboardActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    //Cierra la app al pulsar el botón de ir hacia atras para evitar posibles errores
     override fun onBackPressed() {
         super.onBackPressed()
         finishAffinity()
@@ -381,6 +407,7 @@ class DashboardActivity : AppCompatActivity() {
         }
     }
 
+    //Permite la edición del nombre y foto del usuario desde el menú lateral
     private fun showEditProfileDialog(
         uid: String?,
         nameTv: TextView,

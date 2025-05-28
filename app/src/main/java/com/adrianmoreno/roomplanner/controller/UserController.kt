@@ -1,4 +1,11 @@
-// src/main/java/com/adrianmoreno/roomplanner/controller/UserController.kt
+/**
+ * UserController
+ * --------------
+ * Gestiona la lista de cleaners asignados a un hotel y las operaciones
+ * de añadir, eliminar y recargar dicho listado.
+ *
+ */
+
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData
@@ -27,7 +34,7 @@ class UserController(
     /** Ahora acepta un onComplete para informar de éxito o fallo */
     fun removeCleanerFromHotel(uid: String, hotelId: String) {
         viewModelScope.launch {
-            val ok = repo.removeCleanerFromHotel(uid, hotelId)
+            val ok = repo.removeUserFromHotel(uid, hotelId)
             if (ok) {
                 loadCleanersForHotel(hotelId)
             }

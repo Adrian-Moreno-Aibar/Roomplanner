@@ -1,3 +1,13 @@
+/**
+ * RoomRepository
+ * ==============
+ *
+ * Se encarga de las operaciones CRUD y de estado sobre las habitaciones  en Firestore.
+ * Utiliza FirebaseAuth para obtener el usuario actual cuando sea necesario y Firestore para la
+ * persistencia de datos. Incluye métodos para leer, crear, actualizar y borrar habitaciones,
+ * así como para cambiar únicamente su estado de ocupación o limpieza.
+ */
+
 package com.adrianmoreno.roomplanner.repositories
 
 import android.util.Log

@@ -1,4 +1,3 @@
-// src/main/java/com/adrianmoreno/roomplanner/HotelDetailActivity.kt
 package com.adrianmoreno.roomplanner
 
 import android.os.Bundle
@@ -24,7 +23,7 @@ class HotelDetailActivity : AppCompatActivity() {
             ?: ""
         val role = intent.getStringExtra(EXTRA_USER_ROLE)  ?: "CLEANER"
 
-        // Si tienes un Toolbar, podrías poner:
+        // Poner en la Actionbar el nombre del hotel.
         supportActionBar?.title = hotelName
 
         // Cargamos por defecto el fragment de Habitaciones

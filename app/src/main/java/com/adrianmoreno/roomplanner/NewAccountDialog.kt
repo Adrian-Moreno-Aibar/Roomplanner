@@ -15,7 +15,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.firestore.FirebaseFirestore
 
-class DialogoCrearCuenta : DialogFragment() {
+class NewAccountDialog : DialogFragment() {
 
     private val auth = FirebaseAuth.getInstance()
     private val db   = FirebaseFirestore.getInstance()
@@ -55,9 +55,18 @@ class DialogoCrearCuenta : DialogFragment() {
             auth.createUserWithEmailAndPassword(email, pass)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
+                        // 1) enviar verificación
                         auth.currentUser?.sendEmailVerification()
+                        // 2) guardar perfil en Firestore YA, para no perder nombre/rol
                         saveUserProfile(name)
-                    } else {
+                        // 3) desloguear inmediatamente y avisar
+                        auth.signOut()
+                        Toast.makeText(requireContext(),
+                            "Cuenta creada. Revisa tu correo para verificarla antes de entrar.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        dismiss()
+                    }  else {
                         val ex = task.exception
                         val msg = when (ex) {
                             is FirebaseAuthUserCollisionException ->

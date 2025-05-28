@@ -4,7 +4,7 @@ data class User(
     val uid: String = "",
     val name: String = "",
     val email: String = "",
-    val role: String = "",             // "ADMIN" o "CLEANER"
+    val role: String = "",
     val hotelRefs: List<String> = emptyList(),
     val photoUrl: String = ""
 )

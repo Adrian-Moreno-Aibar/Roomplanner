@@ -1,4 +1,20 @@
-// com/adrianmoreno/roomplanner/repositories/HotelRepository.kt
+/**
+ * HotelRepository
+ * ===============
+ *
+ * Gestiona todas las operaciones CRUD relacionadas con los hoteles en Firestore.
+ * Además, sincroniza la referencia de los hoteles en el perfil del usuario autenticado.
+ * Utiliza FirebaseAuth para identificar al usuario actual y Firestore para persistencia.
+ *
+ * Funcionalidades:
+ * - createHotel: crea un nuevo hotel y añade su ID al array `hotelRefs` del usuario.
+ * - getAllHotels: obtiene todos los hoteles (para SUPERADMIN).
+ * - getHotelsForUser: obtiene solo los hoteles a los que el usuario tiene acceso.
+ * - updateHotel: actualiza los datos de un hotel.
+ * - deleteHotel: elimina un hotel por ID.
+ * - deleteHotelCascade: elimina un hotel y sus habitaciones asociadas, y lo quita de `hotelRefs` del usuario.
+ */
+
 package com.adrianmoreno.roomplanner.repositories
 
 import android.util.Log

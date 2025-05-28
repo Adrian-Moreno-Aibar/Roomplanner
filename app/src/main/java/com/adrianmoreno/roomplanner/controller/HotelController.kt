@@ -1,3 +1,15 @@
+/**
+ * HotelController
+ * ---------------
+ * Gestiona la lista de hoteles visibles en el Dashboard según el rol
+ * del usuario, y coordina la creación, edición y borrado de hoteles.
+ *
+ * - `hotels`: LiveData con la lista de hoteles.
+ * - Métodos para cargar todos los hoteles (SUPERADMIN) o solo los
+ *   accesibles al usuario (ADMIN/CLEANER).
+ * - Métodos `addHotel`, `updateHotel`, `deleteHotel`, `deleteHotelCascade`
+ *   delegan acciones al repositorio sin recarga automática.
+ */
 package com.adrianmoreno.roomplanner.controller
 
 import androidx.lifecycle.LiveData

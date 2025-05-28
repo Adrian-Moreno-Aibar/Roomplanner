@@ -1,4 +1,3 @@
-// com/adrianmoreno/roomplanner/models/ReservedRange.kt
 package com.adrianmoreno.roomplanner.models
 
 import com.google.firebase.Timestamp
