@@ -31,14 +31,12 @@ class UserController(
     }
 
     /** Elimina la referencia al hotel del cleaner y recarga la lista */
-    /** Ahora acepta un onComplete para informar de éxito o fallo */
     fun removeCleanerFromHotel(uid: String, hotelId: String) {
         viewModelScope.launch {
             val ok = repo.removeUserFromHotel(uid, hotelId)
             if (ok) {
                 loadCleanersForHotel(hotelId)
             }
-            // si quieres notificar al fragment, podrías exponer otro LiveData o SingleLiveEvent
         }
     }
 
@@ -58,7 +56,6 @@ class UserController(
         viewModelScope.launch {
             val success = repo.deleteUser(uid)
             if (success) {
-                // recarga tras borrar
                 loadCleanersForHotel(hotelId)
             }
         }

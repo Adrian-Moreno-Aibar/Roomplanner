@@ -39,7 +39,7 @@ class InviteCleanerDialogFragment(
         dialog = AlertDialog.Builder(requireContext())
             .setTitle("Invitar limpiador")
             .setView(view)
-            .setPositiveButton("Invitar", null)    // listener se asigna en onStart
+            .setPositiveButton("Invitar", null)
             .setNegativeButton("Cancelar") { _, _ ->
                 // el dialog se cierra automáticamente
             }

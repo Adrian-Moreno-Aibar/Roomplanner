@@ -90,7 +90,7 @@ class HotelRepository {
                 callback(emptyList())
             }
     }
-    // 4) UPDATE
+    // UPDATE
     suspend fun updateHotel(hotel: Hotel): Boolean = try {
         db.collection(COLLECTION).document(hotel.id)
             .set(hotel)
@@ -101,7 +101,7 @@ class HotelRepository {
         false
     }
 
-    // 5) DELETE
+    //DELETE
     suspend fun deleteHotel(hotelId: String): Boolean = try {
         db.collection(COLLECTION).document(hotelId)
             .delete()

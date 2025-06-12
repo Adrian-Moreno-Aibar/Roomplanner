@@ -57,7 +57,7 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        // 1) No hay sesión, inicializar pantalla de login
+        // Si no hay una sesión activa, inicializar la  pantalla de login
         initLoginScreen()
     }
 

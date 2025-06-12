@@ -2,7 +2,7 @@
  * DashboardActivity
  * =================
  *
- * Actividad principal tras login. Muestra métricas y lista de reservas próximas,
+ * Actividad principal tras el login. Muestra métricas y lista de reservas próximas,
  * además de navegación mediante un drawer lateral a otras secciones.
  * Permite:
  *  - Saludo personalizado con nombre y foto del usuario.
