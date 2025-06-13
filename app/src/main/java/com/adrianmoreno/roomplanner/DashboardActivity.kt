@@ -7,10 +7,10 @@
  * Permite:
  *  - Saludo personalizado con nombre y foto del usuario.
  *  - Mostrar número total de hoteles, habitaciones y habitaciones libres.
- *  - Crear nueva reserva (si rol ADMIN/SUPERADMIN).
+ *  - Crear nueva reserva (si rol ADMIN).
  *  - Unirse a hotel con un token.
  *  - Lista de reservas con acciones de editar/borrar según rol.
- *  - Sincronización automática de check-outs (sweepCheckout) al reanudar.
+ *  - Sincronización automática de check-outs  al reanudar.
  */
 package com.adrianmoreno.roomplanner
 

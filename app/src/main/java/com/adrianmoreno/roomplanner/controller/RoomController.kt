@@ -58,7 +58,7 @@ class RoomController(
     }
 
     /**
-     * Sincroniza el estado (`status`) de las habitaciones revisando la última reserva.
+     * Sincroniza el estado de las habitaciones revisando la última reserva.
      * - Ocupada si existe una reserva con `checkInDate` ≤ ahora y `checkOutDate` > ahora.
      * - Libre en cualquier otro caso.
      */

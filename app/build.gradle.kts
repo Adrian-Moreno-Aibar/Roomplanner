@@ -46,7 +46,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.activity:activity-ktx:1.7.2")
 
-    // Firebase BOM + KTX
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:31.2.3"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
